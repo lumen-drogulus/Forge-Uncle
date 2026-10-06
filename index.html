@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0D0D0D">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="FORGE">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="favicon-32.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/figures.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <title>FORGE</title>
+</head>
+<body>
+  <!-- Splash Screen: the logo strike. playSplash() in app.js animates it. -->
+  <div class="splash" id="splash">
+    <div class="fx-mark splash-mark" id="splash-mark">
+      <div class="fx-glow"></div>
+      <svg viewBox="0 0 100 100" role="img" aria-label="FORGE">
+        <defs><clipPath id="splash-clip"><rect width="100" height="100"></rect></clipPath></defs>
+        <g class="fx-shake"><g clip-path="url(#splash-clip)">
+          <polygon points="0,0 100,0 100,48 0,72" fill="#F5A524"></polygon>
+          <polygon class="fx-cold" points="0,0 100,0 100,48 0,72" fill="#0E0F11"></polygon>
+          <polygon points="0,76 100,52 100,100 0,100" fill="#22C3E6"></polygon>
+          <polygon class="fx-seam" points="0,72 100,48 100,52 0,76" fill="#FFF6E0"></polygon>
+          <g class="fx-swing"><g transform="rotate(-43.5 38 66.88)" fill="#0E0F11">
+            <path d="M46.5 40.38 L156.5 39.38 L156.5 48.38 L46.5 47.38 Z"></path>
+            <path d="M39.5 66.88 L53.5 66.88 L55 65.38 L55 35.88 L48 20.88 L45 20.88 L38 35.88 L38 65.38 Z"></path>
+          </g></g>
+        </g></g>
+      </svg>
+    </div>
+    <div class="splash-word" id="splash-word">FORGE</div>
+    <div class="splash-tag" id="splash-tag"><span class="h">POWER</span> · <span class="q">HYPERTROPHY</span></div>
+    <canvas class="fx-sparks" id="splash-sparks"></canvas>
+  </div>
+
+  <!-- PR Celebration Overlay: showPRCelebration() in app.js fills and animates it. -->
+  <div class="pr-overlay" id="pr-overlay">
+    <div class="fx-mark pr-mark" id="pr-mark">
+      <div class="fx-glow"></div>
+      <svg viewBox="0 0 100 100" role="img" aria-label="FORGE">
+        <defs><clipPath id="pr-clip"><rect width="100" height="100"></rect></clipPath></defs>
+        <g class="fx-shake"><g clip-path="url(#pr-clip)">
+          <polygon points="0,0 100,0 100,48 0,72" fill="#F5A524"></polygon>
+          <polygon class="fx-cold" points="0,0 100,0 100,48 0,72" fill="#0E0F11"></polygon>
+          <polygon points="0,76 100,52 100,100 0,100" fill="#22C3E6"></polygon>
+          <polygon class="fx-seam" points="0,72 100,48 100,52 0,76" fill="#FFF6E0"></polygon>
+          <g class="fx-swing"><g transform="rotate(-43.5 38 66.88)" fill="#0E0F11">
+            <path d="M46.5 40.38 L156.5 39.38 L156.5 48.38 L46.5 47.38 Z"></path>
+            <path d="M39.5 66.88 L53.5 66.88 L55 65.38 L55 35.88 L48 20.88 L45 20.88 L38 35.88 L38 65.38 Z"></path>
+          </g></g>
+        </g></g>
+      </svg>
+    </div>
+    <div class="pr-title" id="pr-title">New <span>personal</span> record</div>
+    <div class="pr-lift" id="pr-lift"></div>
+    <div class="pr-num" id="pr-num"></div>
+    <div class="pr-delta" id="pr-delta"></div>
+    <div class="pr-cont" id="pr-cont">Tap anywhere to continue</div>
+    <canvas class="fx-sparks" id="pr-sparks"></canvas>
+  </div>
+
+  <!-- App Shell -->
+  <div id="app">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-brand">
+        <svg viewBox="0 0 100 100" aria-hidden="true"><polygon points="0,0 100,0 100,44 0,68" fill="#F5A524"></polygon><polygon points="0,76 100,52 100,100 0,100" fill="#22C3E6"></polygon></svg>
+        <span>FORGE</span>
+      </div>
+      <span class="header-date" id="header-date"></span>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="main" id="main-content">
+      <!-- Content injected by app.js -->
+    </div>
+
+    <!-- Bottom Navigation -->
+    <div class="bottom-nav" id="bottom-nav">
+      <button class="nav-item active" data-tab="home">
+        <i class="ti ti-home nav-item-icon"></i>
+        <div class="nav-item-label">Home</div>
+      </button>
+      <button class="nav-item" data-tab="tracker">
+        <i class="ti ti-chart-bar nav-item-icon"></i>
+        <div class="nav-item-label">Tracker</div>
+      </button>
+      <button class="nav-item" data-tab="prs">
+        <i class="ti ti-trophy nav-item-icon"></i>
+        <div class="nav-item-label">PRs</div>
+      </button>
+      <button class="nav-item" data-tab="settings">
+        <i class="ti ti-settings nav-item-icon"></i>
+        <div class="nav-item-label">Settings</div>
+      </button>
+    </div>
+  </div>
+
+  <!-- Info Panel (slides up for exercise tips/images) -->
+  <div class="info-panel-backdrop" id="info-backdrop"></div>
+  <div class="info-panel" id="info-panel">
+    <div class="info-panel-handle"></div>
+    <div id="info-panel-content"></div>
+  </div>
+
+  <!-- Plate Calculator (slides up, reuses info-panel styling) -->
+  <div class="info-panel" id="plate-panel">
+    <div class="info-panel-handle"></div>
+    <div id="plate-panel-content"></div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/figures.js"></script>
+  <script src="js/moves.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
