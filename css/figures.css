@@ -1,0 +1,53 @@
+/* ===== EXERCISE FIGURES (v0.20) =====
+   Code-drawn demo figures in the Tips sheet. Everything is scoped under
+   .ffig-wrap / .ffig so no app rule can leak in. Colour follows --acc. */
+.ffig-wrap {
+  --plate: #111316;
+  --skin: #8C929B;
+  --skin-far: #50555D;
+  --shorts: #31353B;
+  --shorts-far: #25282D;
+  --iron: #1C1F23;
+  --steel: #8A9099;
+  --steel-dim: #3A3F46;
+  margin-bottom: 14px;
+}
+.ffig-box { position: relative; width: 100%; max-width: 100%; aspect-ratio: 1 / 1; background: var(--plate); border: 1px solid var(--rule); border-radius: var(--radius); cursor: pointer; overflow: hidden; }
+.ffig-box:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
+.ffig { display: block; width: 100%; height: 100%; }
+.ffig-tempo { display: flex; gap: 3px; margin-top: 8px; contain: inline-size; min-width: 0; }
+.ffig-tempo .seg { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.ffig-tempo .bar { display: block; height: 2px; background: var(--rule); position: relative; overflow: hidden; }
+.ffig-tempo .bar b { position: absolute; top: 0; bottom: 0; left: 0; width: 0; background: var(--acc); }
+.ffig-tempo .lab { font-family: var(--font-mono); font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-faint); white-space: nowrap; overflow: hidden; text-overflow: clip; padding-right: 6px; font-variant-numeric: tabular-nums; }
+.ffig-tempo .seg.on .lab { color: var(--acc); }
+
+.ffig .body { fill: var(--skin); stroke: var(--plate); stroke-width: 1.3; stroke-linejoin: round; }
+.ffig .calf { stroke: none; }
+.ffig .far { fill: var(--skin-far); stroke: var(--plate); stroke-width: 1.3; stroke-linejoin: round; }
+.ffig .ear { fill: #737982; }
+.ffig .shorts { fill: var(--shorts); stroke: var(--plate); stroke-width: 1.1; }
+.ffig .shorts-top { stroke: none; }
+.ffig .shorts-far { fill: var(--shorts-far); stroke: var(--plate); stroke-width: 1.1; }
+.ffig .mus { fill: var(--acc); }
+.ffig .mus-halo { fill: none; stroke: var(--acc); stroke-width: 3.4; stroke-linejoin: round; }
+.ffig .iron { fill: var(--iron); stroke: var(--steel); stroke-width: 1.2; vector-effect: non-scaling-stroke; }
+.ffig .iron-dim { fill: var(--iron); stroke: var(--steel-dim); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.ffig .iron-glass { fill: rgba(17,19,22,.42); stroke: var(--steel); stroke-width: 1.2; vector-effect: non-scaling-stroke; }
+.ffig .line-dim { fill: none; stroke: var(--steel-dim); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.ffig .cable { fill: none; stroke: var(--steel); stroke-width: 1.1; vector-effect: non-scaling-stroke; }
+.ffig .chain { fill: none; stroke: var(--steel); stroke-width: 1.6; stroke-dasharray: 2 1.4; vector-effect: non-scaling-stroke; }
+.ffig .dot { fill: var(--steel); }
+.ffig .lifted { fill: var(--iron); stroke: var(--acc); stroke-width: 1.2; vector-effect: non-scaling-stroke; }
+.ffig .floor { stroke: var(--border); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.ffig .tick { stroke: var(--rule); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.ffig .cue { fill: none; stroke: var(--text-faint); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; transition: stroke .15s; }
+.ffig .cue.on { stroke: var(--acc); }
+.ffig .cue-dot { fill: var(--text-faint); }
+.ffig .cue-dot.on { fill: var(--acc); }
+.ffig .ghost { fill: none; stroke: var(--steel-dim); stroke-width: 1; stroke-dasharray: 2 2; vector-effect: non-scaling-stroke; }
+.ffig .lbl { font-family: var(--font-mono); font-size: 7.5px; letter-spacing: 1.1px; fill: var(--text-faint); text-transform: uppercase; }
+.ffig .lbl.on { fill: var(--acc); }
+.ffig .chrome { font-family: var(--font-mono); font-size: 7.5px; letter-spacing: 1.2px; fill: var(--text-faint); }
+.ffig .corner { fill: none; stroke: var(--border-light); stroke-width: 1; }
+.ffig .grid-dot { fill: #1B1E22; }
