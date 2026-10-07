@@ -2676,27 +2676,39 @@ Store.saveActiveWorkout({
     const mark = document.getElementById('splash-mark');
     if (!mark) return;
     const p = fxParts(mark);
-    fxAnim(mark, [{ opacity: 0, transform: 'scale(.96)' }, { opacity: 1, transform: 'scale(1)' }], 0, 300, 'ease-out');
-    fxAnim(p.cold, [{ opacity: 0.5 }, { opacity: 0.5, offset: 620 / 900 }, { opacity: 0 }], 0, 900);
-    if (REDUCE_MOTION) {
-      fxAnim(p.swing, [{ transform: 'rotate(0deg)' }, { transform: 'rotate(0deg)' }], 0, 1);
-    } else {
+    const T = 740;   // the strike, in ms from launch
+    // Open Android's launch circle into the full square, growing to full size.
+    const open = REDUCE_MOTION ? 300 : 420, ease = 'cubic-bezier(.3,0,.15,1)';
+    const svg = mark.querySelector('svg');
+    fxAnim(mark, [{ transform: 'scale(.9375)' }, { transform: 'scale(1)' }], 0, open, ease);
+    const morph = fxAnim(svg, [{ clipPath: 'inset(13.22% round 50%)' }, { clipPath: 'inset(0% round 0%)' }], 0, open, ease);
+    // Then drop the clip, so the strike's jolt never shaves an edge.
+    fxLater(open + 20, () => { if (svg) svg.style.clipPath = 'none'; if (morph) morph.cancel(); });
+    if (!REDUCE_MOTION) {
+      // Wind up while it grows: hammer lifts out of frame, the metal cools to half heat.
+      fxAnim(p.cold, [{ opacity: 0 }, { opacity: 0.45, offset: 360 / 1020 }, { opacity: 0.45, offset: T / 1020 }, { opacity: 0 }], 0, 1020);
       fxAnim(p.swing, [
-        { transform: 'rotate(58deg)', easing: 'cubic-bezier(.55,0,.95,.35)' },
-        { transform: 'rotate(0deg)', offset: 320 / 700, easing: 'cubic-bezier(.2,.7,.3,1)' },
-        { transform: 'rotate(7deg)', offset: 450 / 700, easing: 'cubic-bezier(.5,0,.8,.4)' },
-        { transform: 'rotate(0deg)' }], 300, 700);
+        { transform: 'rotate(0deg)', easing: 'cubic-bezier(.45,0,.35,1)' },
+        { transform: 'rotate(58deg)', offset: 360 / 1120 },
+        { transform: 'rotate(58deg)', offset: 420 / 1120, easing: 'cubic-bezier(.55,0,.95,.35)' },
+        { transform: 'rotate(0deg)', offset: T / 1120, easing: 'cubic-bezier(.2,.7,.3,1)' },
+        { transform: 'rotate(7deg)', offset: 870 / 1120, easing: 'cubic-bezier(.5,0,.8,.4)' },
+        { transform: 'rotate(0deg)' }], 0, 1120);
     }
-    fxFlash(p.seam, 620, 900);
-    fxJolt(p.shake, 620, 2.2);
-    fxAnim(p.glow, [{ opacity: 0 }, { opacity: 0.9, offset: 0.08 }, { opacity: 0 }], 620, 1000, 'ease-out');
+    // The seam stays dark until the hammer lands, then flashes white-hot and cools.
+    const o = T / (T + 900);
+    fxAnim(p.seam, [{ opacity: 0, fill: '#FFF8E6' }, { opacity: 0, fill: '#FFF8E6', offset: o },
+      { opacity: 1, fill: '#FFF8E6', offset: o }, { opacity: 0.95, fill: '#FFC266', offset: o + 0.25 * (1 - o) },
+      { opacity: 0.6, fill: '#FF7A1F', offset: o + 0.55 * (1 - o) }, { opacity: 0, fill: '#FF5A1F' }], 0, T + 900);
+    fxJolt(p.shake, T, 2.2);
+    fxAnim(p.glow, [{ opacity: 0 }, { opacity: 0.9, offset: 0.08 }, { opacity: 0 }], T, 1000, 'ease-out');
     fxAnim(document.getElementById('splash-word'), REDUCE_MOTION
       ? [{ opacity: 0 }, { opacity: 1 }]
       : [{ opacity: 0, letterSpacing: '40px', paddingLeft: '40px', filter: 'blur(6px)' },
          { opacity: 1, letterSpacing: '16px', paddingLeft: '16px', filter: 'blur(0px)' }],
-      780, 520, 'cubic-bezier(.2,.8,.2,1)');
-    fxAnim(document.getElementById('splash-tag'), [{ opacity: 0 }, { opacity: 1 }], 1250, 400, 'ease-out');
-    fxLater(620, () => fxBurst(document.getElementById('splash-sparks'), mark, 18, 1));
+      900, 520, 'cubic-bezier(.2,.8,.2,1)');
+    fxAnim(document.getElementById('splash-tag'), [{ opacity: 0 }, { opacity: 1 }], 1370, 400, 'ease-out');
+    fxLater(T, () => fxBurst(document.getElementById('splash-sparks'), mark, 18, 1));
   }
 
   // ===== PR CELEBRATION =====

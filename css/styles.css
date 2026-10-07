@@ -1260,9 +1260,14 @@ button { font: inherit; color: inherit; }
   transition: opacity 0.5s;
 }
 .splash.hidden { opacity: 0; pointer-events: none; }
-.splash-mark { width: 168px; height: 168px; }
+.splash-mark { width: 232px; height: 232px; transform: scale(.9375); }
+.splash-mark svg { clip-path: inset(13.22% round 50%); }
 .splash-word {
-  margin-top: 32px;
+  position: absolute;
+  top: calc(50% + 148px);
+  left: 0;
+  right: 0;
+  text-align: center;
   padding-left: 16px;
   font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
   font-weight: 700;
@@ -1282,10 +1287,9 @@ button { font: inherit; color: inherit; }
 }
 .splash-tag .h { color: #F5A524; }
 .splash-tag .q { color: #22C3E6; }
-/* Starting pose. playSplash() animates everything from here. */
-.splash .fx-mark, .splash-word, .splash-tag { opacity: 0; }
-.splash .fx-cold { opacity: 0.5; }
-.splash .fx-swing { transform: rotate(58deg); }
+/* Starting pose: Android's launch circle, exactly. The logo at the icon's size,
+   hammer down, cropped to the same circle. playSplash() opens it into the square. */
+.splash-word, .splash-tag { opacity: 0; }
 
 
 /* ===== FORGE FX (logo mark used by the splash and the PR screen) ===== */
