@@ -468,7 +468,53 @@ Store.saveActiveWorkout({
     setTimeout(() => {
       const splash = document.getElementById('splash');
       if (splash) { splash.classList.add('hidden'); setTimeout(() => splash.remove(), 600); }
+      maybeShowRelease();
     }, 2000);
+  }
+
+  // ===== WHAT'S NEW (v0.26) =====
+  // Shown once per release, as the splash fades, to anyone who already has
+  // data. Only its button closes it (no backdrop tap), so a stray thumb can't
+  // skip it. A fresh install stamps the release silently: nothing is "new" to
+  // someone who never saw the old version. Bump RELEASE.id with every release
+  // that has notes; a release without notes keeps the old id and shows nothing.
+  const RELEASE = {
+    id: 'v0.26',
+    items: [
+      ['Warm-up demos', 'Tap any warm-up move to see it done. Lines that name two moves show both.'],
+      ['Dips and Pull-Ups', 'No more "Weighted" in the names. You can still add weight with BW+. The calisthenics version is now BW Pull-Ups.'],
+      ['Louder rest alert', 'Higher and louder, so it cuts through gym music, with three quick beeps on zero.'],
+      ['Figure fixes', 'Toes on the floor in the bird dog, pointed toes in the hollow hold, and flat arms in the glute bridge.'],
+    ],
+  };
+
+  function maybeShowRelease() {
+    if (Store.get('seenRelease') === RELEASE.id) return;
+    const hasData = Object.keys(Store.getLogs()).length > 0 || Store.get('settings') !== null;
+    if (!hasData) { Store.set('seenRelease', RELEASE.id); return; }
+    if (document.getElementById('release-overlay')) return;
+    const el = document.createElement('div');
+    el.className = 'release-overlay';
+    el.id = 'release-overlay';
+    el.setAttribute('role', 'dialog');
+    el.setAttribute('aria-modal', 'true');
+    el.setAttribute('aria-labelledby', 'release-title');
+    el.innerHTML = `
+      <div class="release-card">
+        <div class="release-tag">Updated · ${RELEASE.id}</div>
+        <h2 class="release-title" id="release-title">What's new</h2>
+        <ul class="release-list">
+          ${RELEASE.items.map(([h, t]) => `<li><b>${h}</b><span>${t}</span></li>`).join('')}
+        </ul>
+        <button class="release-btn" id="release-ack" onclick="FORGE.ackRelease()">Got it <i class="ti ti-check"></i></button>
+      </div>`;
+    document.body.appendChild(el);
+  }
+
+  function ackRelease() {
+    Store.set('seenRelease', RELEASE.id);
+    const el = document.getElementById('release-overlay');
+    if (el) { el.classList.add('closing'); setTimeout(() => el.remove(), REDUCE_MOTION ? 0 : 180); }
   }
 
   function registerSW() {
@@ -1324,8 +1370,10 @@ Store.saveActiveWorkout({
       </div>
       <div class="warmup-card ${typeClass}">
         <div class="warmup-title">${workout.warmup.name}</div>
-        <div class="warmup-duration">${workout.warmup.duration}</div>
-        ${workout.warmup.movements.map(m => `<div class="warmup-movement">${m}</div>`).join('')}
+        <div class="warmup-duration">${workout.warmup.duration}${workout.warmup.movements.some(m => typeof m === 'object') ? ' · tap a move to see it' : ''}</div>
+        ${workout.warmup.movements.map((m, i) => typeof m === 'object'
+          ? `<button class="warmup-movement tappable" onclick="FORGE.showWarmupInfo(${i})" aria-label="Show how: ${m.name}"><span class="wm-text">${m.text}</span><i class="ti ti-info-circle"></i></button>`
+          : `<div class="warmup-movement">${m}</div>`).join('')}
       </div>
       <button class="warmup-done-btn ${typeClass}" onclick="FORGE.warmupDone()">
         Warm-up complete <i class="ti ti-arrow-right"></i>
@@ -2320,15 +2368,20 @@ Store.saveActiveWorkout({
     }
   }
 
-  // ===== REST COUNTDOWN (v0.21) =====
-  // Pips at 3, 2 and 1 seconds left, then a long high tone on zero.
-  // All four are booked on the audio clock the moment the rest starts, so
-  // they land on the exact second even if the phone slows the page down.
+  // ===== REST COUNTDOWN (v0.26) =====
+  // Pips at 3, 2 and 1 seconds left, then three quick high beeps on zero.
+  // All of it is booked on the audio clock the moment the rest starts, so
+  // it lands on the exact second even if the phone slows the page down.
   // The vibration can't be booked that far ahead (browsers cap a pattern
   // at 10 s per step), so it goes out once, 3.6 s before the end.
+  // v0.26: about 10 dB louder and pitched up into the 2 to 3 kHz band,
+  // where ears are sharpest and music is thinnest. It has its own path to
+  // the speaker with a limiter, because the shared effects compressor
+  // would squash any boost straight back down.
   let restSounds = [];     // booked tones, kept so they can be cancelled
   let restBuzzed = false;  // has this rest's vibration gone out yet
-  const REST_LEVEL = 0.63; // level-matched to the old siren in the audition
+  let restBus = null;      // the alert's own path to the speaker
+  const REST_LEVEL = 0.5;  // peaks just under full scale after the limiter
 
   function cancelRestSounds() {
     restSounds.forEach(o => { try { o.stop(); } catch (e) {} });
@@ -2338,46 +2391,56 @@ Store.saveActiveWorkout({
     restBuzzed = false;
   }
 
+  // Built once: low-pass, level, limiter, speaker.
+  function getRestBus(ctx) {
+    if (restBus) return restBus;
+    const lp = ctx.createBiquadFilter();   // takes the fizz off the square wave
+    lp.type = 'lowpass';
+    lp.frequency.value = 6000;
+    const out = ctx.createGain();
+    out.gain.value = REST_LEVEL;
+    const lim = ctx.createDynamicsCompressor();  // safety net against clipping
+    lim.threshold.value = -3;
+    lim.knee.value = 0;
+    lim.ratio.value = 20;
+    lim.attack.value = 0.001;
+    lim.release.value = 0.05;
+    lp.connect(out); out.connect(lim); lim.connect(ctx.destination);
+    restBus = lp;
+    return restBus;
+  }
+
+  // One square-wave beep: sharp start, flat top, quick fade.
+  function restBeep(ctx, bus, t, freq, len) {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'square';
+    o.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(1, t + 0.005);
+    g.gain.setValueAtTime(1, t + len - 0.01);
+    g.gain.linearRampToValueAtTime(0.0001, t + len);
+    o.connect(g); g.connect(bus);
+    o.start(t); o.stop(t + len + 0.02);
+    restSounds.push(o);
+  }
+
   function scheduleRestSounds() {
     cancelRestSounds();
     try {
       const ctx = getAudio();   // the one shared audio context
       if (!ctx) return;
+      const bus = getRestBus(ctx);
       const now = ctx.currentTime;
       const secLeft = (state.timerEndAt - Date.now()) / 1000;
-      const out = ctx.createGain();
-      out.gain.value = REST_LEVEL;
-      const lp = ctx.createBiquadFilter();   // takes the fizz off the square wave
-      lp.type = 'lowpass';
-      lp.frequency.value = 3500;
-      lp.connect(out);
-      out.connect(fxMaster);
-      // Pips: 1000 Hz, a sharp start that dies away in 0.12 s.
+      // Pips: 2000 Hz, short.
       [3, 2, 1].forEach(k => {
         const t = now + secLeft - k;
-        if (t < now) return;
-        const o = ctx.createOscillator(), g = ctx.createGain();
-        o.type = 'square';
-        o.frequency.value = 1000;
-        g.gain.setValueAtTime(0.0001, t);
-        g.gain.linearRampToValueAtTime(0.3, t + 0.005);
-        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
-        o.connect(g); g.connect(lp);
-        o.start(t); o.stop(t + 0.17);
-        restSounds.push(o);
+        if (t >= now) restBeep(ctx, bus, t, 2000, 0.1);
       });
-      // Zero: an octave up, held for half a second.
+      // Zero: 3000 Hz, beep-beep-beep. A pulse cuts through music
+      // better than one held tone.
       const t = now + Math.max(0, secLeft);
-      const o = ctx.createOscillator(), g = ctx.createGain();
-      o.type = 'square';
-      o.frequency.value = 2000;
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.linearRampToValueAtTime(0.3, t + 0.005);
-      g.gain.setValueAtTime(0.3, t + 0.5);
-      g.gain.linearRampToValueAtTime(0.0001, t + 0.56);
-      o.connect(g); g.connect(lp);
-      o.start(t); o.stop(t + 0.6);
-      restSounds.push(o);
+      [0, 0.2, 0.4].forEach(d => restBeep(ctx, bus, t + d, 3000, 0.14));
     } catch (e) {}
   }
 
@@ -2912,6 +2975,36 @@ Store.saveActiveWorkout({
     showPanel('info-panel');
   }
 
+  // Warm-up tips (v0.26): the same sheet as an exercise's Tips, for a warm-up line.
+  // A line can point at more than one figure ("arm circles and leg swings").
+  function showWarmupInfo(i) {
+    const day = activeDay();
+    const workout = FORGE_DATA.workouts[day.id];
+    const m = workout.warmup.movements[i];
+    if (!m || typeof m !== 'object') return;
+
+    const panel = document.getElementById('info-panel');
+    const content = document.getElementById('info-panel-content');
+    const figs = [].concat(m.fig || []);
+    content.innerHTML = `
+      <div class="info-panel-title">${m.name}</div>
+      ${figs.map((f, k) => `<div id="info-figure-${k}"></div>`).join('')}
+      <div class="info-panel-tip">${m.text}</div>
+    `;
+
+    panel.classList.remove('power', 'hypertrophy', 'calisthenics', 'core');
+    panel.classList.add(toneClass(day));
+    const Figs = window.ForgeFigures;
+    if (Figs) Figs.stopAll();
+    figs.forEach((f, k) => {
+      const slot = document.getElementById('info-figure-' + k);
+      const fig = Figs && Figs.has(f) ? Figs.mount(slot, f, { code: codeFor(day.id), name: m.name }) : null;
+      if (!fig && slot) slot.remove();
+    });
+
+    showPanel('info-panel');
+  }
+
   function closeInfoPanel() {
     dismissPanel();
   }
@@ -3019,7 +3112,13 @@ Store.saveActiveWorkout({
   // ===== PR TAB =====
   function renderPRs(el) {
     const prs = Store.getPRs();
-    const all = Object.keys(prs).map(id => Object.assign({ id: id }, prs[id]));
+    // Show each record under the exercise's current name from data.js, so a
+    // rename reaches old records too. Falls back to the stored name.
+    const names = {};
+    Object.keys(FORGE_DATA.workouts).forEach(wid => {
+      (FORGE_DATA.workouts[wid].exercises || []).forEach(ex => { names[ex.id] = ex.name; });
+    });
+    const all = Object.keys(prs).map(id => Object.assign({ id: id }, prs[id], names[id] ? { name: names[id] } : {}));
 
     if (all.length === 0) {
       el.innerHTML = `
@@ -3383,6 +3482,8 @@ Store.saveActiveWorkout({
     endWorkout,
     finishAndGoHome,
     showInfo,
+    showWarmupInfo,
+    ackRelease,
     toggleTimer: toggleTimer,
     extendTimer,
     openTracker,

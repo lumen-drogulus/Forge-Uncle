@@ -64,10 +64,10 @@ const FORGE_DATA = {
         name: "Dynamic Warm-Up",
         duration: "5 minutes",
         movements: [
-          "Arm circles, 10 forward and 10 back",
-          "Band pull-aparts, 15 reps with a light band, squeezing shoulder blades",
-          "Push-up walkouts, 5 reps, walking hands out slowly into full push-up position",
-          "Empty bar or light dumbbell bench press, 10-12 easy reps to groove the pattern"
+          { name: "Arm Circles", fig: "arm-circles", text: "Arm circles, 10 forward and 10 back" },
+          { name: "Band Pull-Aparts", fig: "band-pull-apart", text: "Band pull-aparts, 15 reps with a light band, squeezing shoulder blades" },
+          { name: "Push-Up Walkouts", fig: "pushup-walkout", text: "Push-up walkouts, 5 reps, walking hands out slowly into full push-up position" },
+          { name: "Light Bench Press", fig: "bb-flat-bench", text: "Empty bar or light dumbbell bench press, 10-12 easy reps to groove the pattern" }
         ]
       },
       exercises: [
@@ -135,7 +135,7 @@ const FORGE_DATA = {
         },
         {
           id: "weighted-dips-a",
-          name: "Weighted Dips",
+          name: "Dips",
           tier: 2,
           sets: 3,
           reps: "6-8",
@@ -226,10 +226,10 @@ const FORGE_DATA = {
         name: "Dynamic Warm-Up",
         duration: "5 minutes",
         movements: [
-          "Band pull-aparts, 15 reps",
-          "Cat-cow stretches, 8 slow reps through full spinal range",
-          "Thoracic rotations from half-kneeling, 8 each side",
-          "Light lat pulldowns or light dumbbell rows, 10 reps to wake up the lats"
+          { name: "Band Pull-Aparts", fig: "band-pull-apart", text: "Band pull-aparts, 15 reps" },
+          { name: "Cat-Cow", fig: "cat-cow", text: "Cat-cow stretches, 8 slow reps through full spinal range" },
+          { name: "Thoracic Rotations", fig: "thoracic-rotation", text: "Thoracic rotations from half-kneeling, 8 each side" },
+          { name: "Light Pulldowns or Rows", fig: ["wide-lat-pulldown", "db-row"], text: "Light lat pulldowns or light dumbbell rows, 10 reps to wake up the lats" }
         ]
       },
       exercises: [
@@ -250,7 +250,7 @@ const FORGE_DATA = {
         },
         {
           id: "weighted-pullup",
-          name: "Weighted Pull-Ups",
+          name: "Pull-Ups",
           tier: 1,
           sets: 4,
           reps: "5-6",
@@ -388,11 +388,11 @@ const FORGE_DATA = {
         name: "Dynamic Warm-Up",
         duration: "5 minutes",
         movements: [
-          "Leg swings front to back, 10 each leg",
-          "Lateral leg swings, 10 each",
-          "Bodyweight squats, 10 slow reps focusing on depth",
-          "Walking lunges, 8 each leg",
-          "Hip circles (standing, big circles with the knee), 8 each direction per leg"
+          { name: "Leg Swings", fig: "leg-swing", text: "Leg swings front to back, 10 each leg" },
+          { name: "Lateral Leg Swings", fig: "lateral-leg-swing", text: "Lateral leg swings, 10 each" },
+          { name: "Bodyweight Squats", fig: "bw-squat", text: "Bodyweight squats, 10 slow reps focusing on depth" },
+          { name: "Walking Lunges", fig: "walking-lunges", text: "Walking lunges, 8 each leg" },
+          { name: "Hip Circles", fig: "hip-circles", text: "Hip circles (standing, big circles with the knee), 8 each direction per leg" }
         ]
       },
       exercises: [
@@ -535,10 +535,10 @@ const FORGE_DATA = {
         name: "Dynamic Warm-Up",
         duration: "5 minutes",
         movements: [
-          "Arm circles, 10 each direction",
-          "Band dislocates (pass band over and behind head), 10 slow reps",
-          "Scapular push-ups (protract and retract shoulder blades without bending elbows), 10 reps",
-          "Light cable flyes, 12 reps to get blood into the chest"
+          { name: "Arm Circles", fig: "arm-circles", text: "Arm circles, 10 each direction" },
+          { name: "Band Dislocates", fig: "band-dislocate", text: "Band dislocates (pass band over and behind head), 10 slow reps" },
+          { name: "Scapular Push-Ups", fig: "scapular-pushup", text: "Scapular push-ups (protract and retract shoulder blades without bending elbows), 10 reps" },
+          { name: "Light Cable Flyes", fig: "cable-flyes", text: "Light cable flyes, 12 reps to get blood into the chest" }
         ]
       },
       exercises: [
@@ -697,10 +697,10 @@ const FORGE_DATA = {
         name: "Dynamic Warm-Up",
         duration: "5 minutes",
         movements: [
-          "Band pull-aparts, 15 reps",
-          "Arm circles, 10 each direction",
-          "Scapular pull-ups (pull shoulder blades down without bending elbows), 8 reps",
-          "Light single-arm dumbbell rows, 12 reps to activate the lats"
+          { name: "Band Pull-Aparts", fig: "band-pull-apart", text: "Band pull-aparts, 15 reps" },
+          { name: "Arm Circles", fig: "arm-circles", text: "Arm circles, 10 each direction" },
+          { name: "Scapular Pull-Ups", fig: "scapular-pull", text: "Scapular pull-ups (pull shoulder blades down without bending elbows), 8 reps" },
+          { name: "Single-Arm Dumbbell Rows", fig: "db-row", text: "Light single-arm dumbbell rows, 12 reps to activate the lats" }
         ]
       },
       exercises: [
@@ -859,11 +859,11 @@ const FORGE_DATA = {
         name: "Dynamic Warm-Up",
         duration: "5 minutes",
         movements: [
-          "Leg swings, 10 each direction per leg",
-          "Hip circles, 8 each direction",
-          "Bodyweight squats, 10 reps",
-          "Glute bridges on the floor, 10 reps with squeeze at top",
-          "Lateral band walks, 10 steps each direction (if band available)"
+          { name: "Leg Swings", fig: ["leg-swing", "lateral-leg-swing"], text: "Leg swings, 10 each direction per leg" },
+          { name: "Hip Circles", fig: "hip-circles", text: "Hip circles, 8 each direction" },
+          { name: "Bodyweight Squats", fig: "bw-squat", text: "Bodyweight squats, 10 reps" },
+          { name: "Glute Bridges", fig: "glute-bridge", text: "Glute bridges on the floor, 10 reps with squeeze at top" },
+          { name: "Lateral Band Walks", fig: "lateral-band-walk", text: "Lateral band walks, 10 steps each direction (if band available)" }
         ]
       },
       exercises: [
@@ -1024,10 +1024,10 @@ const FORGE_DATA = {
         name: "Dynamic Warm-Up",
         duration: "5 minutes",
         movements: [
-          "Arm circles, 10 forward and 10 back",
-          "Scapular push-ups, 12 reps from a plank",
-          "Wrist circles and wrist rocks, 30 seconds",
-          "Slow push-ups, 8 reps at half effort"
+          { name: "Arm Circles", fig: "arm-circles", text: "Arm circles, 10 forward and 10 back" },
+          { name: "Scapular Push-Ups", fig: "scapular-pushup", text: "Scapular push-ups, 12 reps from a plank" },
+          { name: "Wrist Circles and Rocks", fig: "wrist-rocks", text: "Wrist circles and wrist rocks, 30 seconds" },
+          { name: "Slow Push-Ups", fig: "pushup", text: "Slow push-ups, 8 reps at half effort" }
         ]
       },
       exercises: [
@@ -1171,16 +1171,16 @@ const FORGE_DATA = {
         name: "Dynamic Warm-Up",
         duration: "5 minutes",
         movements: [
-          "Arm circles, 10 each direction",
-          "Scapular pulls from a dead hang, 8 reps",
-          "Band pull-aparts or arm swings, 15 reps",
-          "Two easy sets of 3 pull-ups at half effort"
+          { name: "Arm Circles", fig: "arm-circles", text: "Arm circles, 10 each direction" },
+          { name: "Scapular Pulls", fig: "scapular-pull", text: "Scapular pulls from a dead hang, 8 reps" },
+          { name: "Band Pull-Aparts", fig: "band-pull-apart", text: "Band pull-aparts or arm swings, 15 reps" },
+          { name: "Easy Pull-Ups", fig: "pullup-bw", text: "Two easy sets of 3 pull-ups at half effort" }
         ]
       },
       exercises: [
         {
           id: "pullup-bw",
-          name: "Pull-Ups",
+          name: "BW Pull-Ups",
           sets: 4,
           reps: "5-12",
           rpe: "8-9",
@@ -1318,10 +1318,10 @@ const FORGE_DATA = {
         name: "Dynamic Warm-Up",
         duration: "5 minutes",
         movements: [
-          "Leg swings, 10 each direction per leg",
-          "Bodyweight squats, 15 easy reps",
-          "Walking knee hugs and ankle rolls, 30 seconds",
-          "Glute bridges, 15 reps"
+          { name: "Leg Swings", fig: ["leg-swing", "lateral-leg-swing"], text: "Leg swings, 10 each direction per leg" },
+          { name: "Bodyweight Squats", fig: "bw-squat", text: "Bodyweight squats, 15 easy reps" },
+          { name: "Walking Knee Hugs", fig: "knee-hug", text: "Walking knee hugs and ankle rolls, 30 seconds" },
+          { name: "Glute Bridges", fig: "glute-bridge", text: "Glute bridges, 15 reps" }
         ]
       },
       exercises: [
@@ -1479,10 +1479,10 @@ const FORGE_DATA = {
         name: "Dynamic Warm-Up",
         duration: "5 minutes",
         movements: [
-          "Arm circles and leg swings, 30 seconds each",
-          "Bodyweight squats, 15 reps",
-          "Scapular push-ups, 10 reps",
-          "Glute bridges, 15 reps"
+          { name: "Arm Circles and Leg Swings", fig: ["arm-circles", "leg-swing"], text: "Arm circles and leg swings, 30 seconds each" },
+          { name: "Bodyweight Squats", fig: "bw-squat", text: "Bodyweight squats, 15 reps" },
+          { name: "Scapular Push-Ups", fig: "scapular-pushup", text: "Scapular push-ups, 10 reps" },
+          { name: "Glute Bridges", fig: "glute-bridge", text: "Glute bridges, 15 reps" }
         ]
       },
       exercises: [
@@ -1503,7 +1503,7 @@ const FORGE_DATA = {
         },
         {
           id: "pullup-bw",
-          name: "Pull-Ups",
+          name: "BW Pull-Ups",
           sets: 4,
           reps: "5-12",
           rpe: "8-9",
@@ -1653,10 +1653,10 @@ const FORGE_DATA = {
         name: "Dynamic Warm-Up",
         duration: "5 minutes",
         movements: [
-          "Cat-cow, 10 slow reps",
-          "Bird dog, 8 reps each side",
-          "Band pull-aparts, 15 reps",
-          "Glute bridges, 15 reps"
+          { name: "Cat-Cow", fig: "cat-cow", text: "Cat-cow, 10 slow reps" },
+          { name: "Bird Dog", fig: "bird-dog", text: "Bird dog, 8 reps each side" },
+          { name: "Band Pull-Aparts", fig: "band-pull-apart", text: "Band pull-aparts, 15 reps" },
+          { name: "Glute Bridges", fig: "glute-bridge", text: "Glute bridges, 15 reps" }
         ]
       },
       exercises: [

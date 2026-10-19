@@ -3187,7 +3187,8 @@ const holdClock = (a, holdIdx, secs) => (a.i < holdIdx ? 0 : a.i > holdIdx ? sec
       const l = liftOf(a), sh = a.i === 1 ? 0.5 * Math.sin(2 * Math.PI * t / 3) * Math.min(1, a.pt * 10, (1 - a.pt) * 10) : 0;
       const leg = lerp(-4, 22 + sh, l);
       const ld = [-Math.cos(leg * D2R), Math.sin(leg * D2R), 0];
-      const fd = n3([-Math.cos((leg - 10) * D2R), Math.sin((leg - 10) * D2R), 0]), dn = [-fd[1], fd[0], 0];
+      // toes pointed (v0.26): the foot angles further down past the shin line as the legs lift
+      const fa = leg - lerp(10, 34, l), fd = n3([-Math.cos(fa * D2R), Math.sin(fa * D2R), 0]), dn = [-fd[1], fd[0], 0];
       const legs = {};
       for (const [S, sg] of [["R", 1], ["L", -1]]) legs[S] = { ankle: a3(a3(PEL, [0, 0, sg * 7]), m3(ld, LEGLEN - 0.5)), pole: [0, 1, 0], foot: fd, sole: dn };
       return { pelvis: PEL, spine: [Math.cos(lerp(1, 3, l) * D2R), Math.sin(lerp(1, 3, l) * D2R), 0], curl: lerp(0, 15, l), lat: LAT_SUP_R, head: lerp(0, -8, l), legs,
@@ -3384,7 +3385,10 @@ const holdClock = (a, holdIdx, secs) => (a.i < holdIdx ? 0 : a.i > holdIdx ? sec
     const fr = [-d[1], d[0], 0];
     return { pelvis: h.pel, spine: n3(s3(S, h.pel)), lat: SUPINE_LAT, head: -p.a,
       legs: { L: { ankle: FOOT, pole: [0.3, 1, 0], foot: [1, 0, 0] }, R: { ankle: a3(a3(h.hipR, m3(d, LEGLEN - 0.8)), [0, 0, 2]), pole: fr, foot: fr, sole: d } },
-      arms: J => { const o = {}; for (const Sd of ["R", "L"]) { const ou = out3(J, Sd); o[Sd] = { at: a3([S[0] + 46, 3.6, 0], m3(ou, 21)), pole: a3([0, 1, 0], m3(ou, 0.8)), wrist: true, hand: [1, 0, 0] }; } return o; } };
+      // arms lie straight on the floor beside the body, palms down (v0.26: was bent with the elbow in the air)
+      arms: J => { const o = {}; for (const Sd of ["R", "L"]) { const ou = out3(J, Sd), sh = J["sh" + Sd];
+        const drop = sh[1] - 3.6, Lw = B.ua + B.fa - 0.6, u = n3(a3([Math.sqrt(Math.max(1, Lw * Lw - drop * drop - 16)), -drop, 0], m3(ou, 4)));
+        o[Sd] = { at: a3(sh, m3(u, Lw)), elbow: a3(sh, m3(u, B.ua)), pole: [0, 1, 0], wrist: true, hand: n3([u[0], 0, u[2]]) }; } return o; } };
   };
   sideMove({
     id: "glute-bridge", frame: { k: 1.4, cx: 150, cy: 218 }, shadowR: 70, shadowFlat: 0.1,
@@ -3469,7 +3473,8 @@ const holdClock = (a, holdIdx, secs) => (a.i < holdIdx ? 0 : a.i > holdIdx ? sec
   const PEL = [0, 48.5, 0], S0 = tilt2(80);
   const sh = a3(PEL, m3(S0, B.sh)), WX = sh[0] + 3;
   const kneelAnk = [-42, 4.6];
-  const footK = { fd: n3([-1, 0.05, 0]), dn: n3([0.05, 1, 0]) };
+  // toes rest on the floor (v0.26): foot pitched 27.9° down from horizontal
+  const footK = { fd: [-Math.cos(27.9 * D2R), -Math.sin(27.9 * D2R), 0], dn: [-Math.sin(27.9 * D2R), Math.cos(27.9 * D2R), 0] };
   const footX = { fd: n3([0.12, -1, 0]), dn: n3([-1, -0.12, 0]) };
   const legFor = (Sd, w) => {
     const sg = Sd === "R" ? 1 : -1, hip = a3(PEL, [0, 0, -sg * 8.6]);
@@ -3583,6 +3588,768 @@ const holdClock = (a, holdIdx, secs) => (a.i < holdIdx ? 0 : a.i > holdIdx ? sec
           { at: [hand[0] - 6, yF - 40], text: ph === "Chest" || ph === "Press" ? "CHEST TO FLOOR" : "", on: chestDown, anchor: "middle" },
           { at: [P(J.head)[0] + 16, P(J.head)[1] - 6], text: tall ? "FULL STAND" : "", on: true, anchor: "start" },
           { at: [P(J.head)[0] - 16, P(J.head)[1] + 6], text: ph === "Jump" || ph === "Land" && ctx.pt < 0.6 ? "JUMP OPTIONAL" : "", on: false, anchor: "end" },
+        ],
+      };
+    },
+  });
+})();
+
+/* =========================================================
+   v0.26 · WARM-UP FIGURES (3D unless noted)
+   Every warm-up line in data.js points at a figure: one of
+   these, or an existing exercise figure (light bench, cable
+   flyes, squats, lunges, glute bridges, bird dog, push-ups,
+   pull-ups, lat pulldown).
+   ========================================================= */
+
+// one generic 3D figure: any camera, keyed or procedural, optional travelling floor.
+// def: id, view, cam, frame, muscles, spec(arg, ctx), draw(J, arg, ctx, P, cam)
+//   keyed:      keys, seq, ghostKey, ghostFor, noGhost      (arg = interpolated pose)
+//   procedural: phases [{label, dur, effort}]                (arg = { i, pt, label, t })
+//   floorZ (front edge of the floor for raised cameras), floorShift(arg), shadowX/R/Flat
+function wuFig(def) {
+  const cam = def.cam || camSide(), P = cam.P;
+  const proc = !!def.phases;
+  const total = proc ? def.phases.reduce((s, q) => s + q.dur, 0) : 0;
+  const at = t => {
+    let tt = ((t % total) + total) % total, i = 0;
+    while (i < def.phases.length - 1 && tt > def.phases[i].dur) { tt -= def.phases[i].dur; i++; }
+    return { i, pt: clamp(tt / def.phases[i].dur, 0, 1), label: def.phases[i].label, t: ((t % total) + total) % total };
+  };
+  const FIG = {
+    id: def.id, view: def.view || "SIDE", frame: def.frame, muscles: def.muscles,
+    build(p, ctx) {
+      const arg = proc ? at(ctx.time || 0) : p;
+      const sp = def.spec(arg, ctx), J = solve3(sp);
+      // test hook: every planted contact the spec asked for, so tools/planted.js can check it was reached
+      J._spec = sp;
+      const yF = P([0, 0, def.floorZ || 0])[1];
+      const r = def.draw(J, arg, ctx, P, cam);
+      const back = [...floorEls(yF, def.floorX0 || 30, def.floorX1 || 270, def.floorShift ? def.floorShift(arg) : 0),
+        floorShadow(ctx, 150 + (def.shadowX || 0), yF, def.shadowR || 30, 1, def.shadowFlat || 0.13), ...(r.back || [])];
+      return { els: back.concat(draw3D(J, cam, r.mus || ctx.mus, r.items || [])), J, labels: r.labels || [], dots: r.dots || [], count: r.count, tempoLabel: r.tempoLabel, opacity: r.opacity };
+    },
+  };
+  if (proc) Object.assign(FIG, { procedural: true, noGhost: true, period: total, seqLabels: def.phases.map(q => ({ label: q.label, dur: q.dur, effort: q.effort })), ghostTime: 0 });
+  else Object.assign(FIG, { keys: def.keys, seq: def.seq, ghostKey: def.ghostKey, ghostFor: def.ghostFor, noGhost: def.noGhost });
+  if (proc) {
+    const samples = []; for (let i = 0; i < 64; i++) samples.push(total * i / 64);
+    calibrate3(cam, t => FIG.build(null, { mus: { __id: "cal" }, time: t, uid: "cal", pt: 0 }).J, samples);
+  } else calib(cam, FIG);
+  FIGS.push(FIG);
+  return FIG;
+}
+// world y that lands at page y in a figure's frame (keeps labels clear of the chrome rows)
+const atPageY = (frame, y) => frame.cy + (y - 150) / frame.k;
+// hands resting on the hips (wrists set on the iliac crest, fingers down and forward)
+const handsOnHips = J => {
+  const r = {};
+  for (const Sd of ["R", "L"]) {
+    const ou = out3(J, Sd);
+    r[Sd] = { at: a3(J.T(0.16, Sd === "R" ? 16 : -16, 1), m3(ou, 1.5)), pole: a3(m3(ou, 1), m3(J.ant, -0.6)), wrist: true, hand: n3(a3(m3(J.s, -1), a3(m3(J.ant, 0.3), m3(ou, -0.4)))) };
+  }
+  return r;
+};
+// kneeling foot, top of the foot down: pitched phi degrees below horizontal so the toes rest on the floor
+const kneelFoot = phi => ({ fd: [-Math.cos(phi * D2R), -Math.sin(phi * D2R), 0], dn: [-Math.sin(phi * D2R), Math.cos(phi * D2R), 0] });
+// a straight arm from the shoulder along unit dir u (designed elbow, so no IK flip)
+const straightArm = (J, S, u, slack = 1) => via(J, S, a3(J["sh" + S], m3(u, B.ua)), a3(J["sh" + S], m3(u, B.ua + B.grip - slack)));
+// speed envelope integrated over a phase: 0 at both ends with zero slope, total = 1
+const easeTravel = x => sstep(x);
+// dashed closed path through projected points
+const cueLoop = (pts, on) => pth("M" + pts.map(P2).join("L") + "Z", "cue" + (on ? " on" : ""));
+const cuePath = (pts, on) => pth("M" + pts.map(P2).join("L"), "cue" + (on ? " on" : ""));
+
+/* ---- Arm circles (3/4 front): arms straight out at shoulder height, circles forward then back ---- */
+(() => {
+  const cam = camera3(10, 150, 262, -36);
+  const CONE = 38, PEL = [0, 91.2, 0];
+  const phases = [
+    { label: "Forward", dur: 4.2, effort: 0.8 },
+    { label: "Back", dur: 4.2, effort: 0.8 },
+  ];
+  const TURNS = 4;
+  // circle angle: forward circles, ease to a stop, then backward circles
+  const theta = a => (a.i === 0 ? 1 : -1) * 2 * Math.PI * TURNS * easeTravel(a.pt);
+  const cone = () => CONE * D2R;
+  const dirFor = (J, S, th, c) => {
+    const ou = out3(J, S);
+    // th = 0 up; th = 90° toward the front: the top of the circle moves forward
+    return n3(a3(m3(ou, Math.cos(c)), m3(a3(m3([0, 1, 0], Math.cos(th)), m3(J.ant, Math.sin(th))), Math.sin(c))));
+  };
+  const L = B.ua + B.grip - 1;
+  wuFig({
+    id: "arm-circles", view: "3/4 FRONT", cam, frame: { k: 1.0, cx: 150, cy: 150 }, floorZ: 14,
+    phases, muscles: { delts: 1, frontdelt: 0.5 }, shadowR: 40, shadowFlat: 0.3,
+    spec: a => ({ pelvis: PEL, spine: [0, 1, 0], head: 0, legs: standLegsFront(0, 12),
+      arms: J => { const th = theta(a), c = cone(a); return { R: straightArm(J, "R", dirFor(J, "R", th, c)), L: straightArm(J, "L", dirFor(J, "L", th, c)) }; } }),
+    draw(J, a, ctx, P) {
+      const c = CONE * D2R, back = [];
+      for (const S of ["R", "L"]) {
+        const pts = [];
+        for (let i = 0; i < 28; i++) pts.push(P(a3(J["sh" + S], m3(dirFor(J, S, (i / 28) * 2 * Math.PI, c), L))));
+        back.push(cueLoop(pts, true));
+      }
+      const n = Math.min(10, 1 + Math.floor(TURNS * easeTravel(a.pt) * 10 / TURNS));
+      return {
+        back,
+        labels: [
+          { at: [150, P(J.head)[1] - 30], text: a.i === 0 ? "FORWARD" : "BACKWARD", on: true, anchor: "middle" },
+          { at: [150, P([0, 0, 14])[1] + 16], text: "ARMS STRAIGHT", on: true, anchor: "middle" },
+        ],
+        count: `${a.i === 0 ? "FWD" : "BACK"} ${String(n).padStart(2, "0")} / 10`,
+      };
+    },
+  });
+})();
+
+/* ---- Band pull-aparts (from behind, raised, so the shoulder blades show): straight arms at
+   shoulder height, pull the band apart to the chest, squeeze the blades together ---- */
+(() => {
+  const cam = camera3(25, 150, 262, -150);
+  const PEL = [0, 91.2, 0];
+  const dirFor = (J, S, ph) => { const ou = out3(J, S); return n3(a3(m3(ou, Math.sin(ph * D2R)), a3(m3(J.ant, Math.cos(ph * D2R)), [0, -0.06, 0]))); };
+  wuFig({
+    id: "band-pull-apart", view: "3/4 BACK · HIGH", cam, frame: { k: 1.08, cx: 150, cy: 150 }, floorZ: 16,
+    keys: { front: { ph: 17 }, open: { ph: 88 } }, ghostKey: "open",
+    seq: [
+      { label: "Pull", dur: 1, from: "front", to: "open", ease: "inOut", effort: 1 },
+      { label: "Squeeze", dur: 0.8, from: "open", to: "open", effort: 1 },
+      { label: "Return", dur: 1.6, from: "open", to: "front", ease: "inOut", effort: 0.6 },
+      { label: "Reset", dur: 0.3, from: "front", to: "front", effort: 0.3 },
+    ],
+    muscles: { midback: 1, delts: 0.6 }, shadowR: 40, shadowFlat: 0.4,
+    spec: p => ({ pelvis: PEL, spine: [0, 1, 0], head: -4, legs: standLegsFront(0, 12),
+      arms: J => ({ R: straightArm(J, "R", dirFor(J, "R", p.ph)), L: straightArm(J, "L", dirFor(J, "L", p.ph)) }) }),
+    draw(J, p, ctx, P) {
+      const band = { depth: (cam.depth(J.gripR) + cam.depth(J.gripL)) / 2 + 1, tag: "band", els: [pth(`M${P2(P(J.gripR))}L${P2(P(J.gripL))}`, "cable")] };
+      const open = p.ph > 84;
+      return {
+        items: [band],
+        labels: [
+          { at: [150, atPageY({ k: 1.08, cy: 150 }, 68)], text: "SQUEEZE BLADES", on: open && ctx.phase === "Squeeze", anchor: "middle" },
+          { at: [150, atPageY({ k: 1.08, cy: 150 }, 52)], text: "ARMS STRAIGHT", on: true, anchor: "middle" },
+        ],
+      };
+    },
+  });
+})();
+
+/* ---- Leg swings, front to back (side): tall on the far leg, near leg swings loose from the hip ---- */
+(() => {
+  const PEL = [0, 91.2, 0];
+  const hipL = a3(PEL, [0, 0, 8.6]);
+  const legFor = a => {
+    // shorter near the bottom so the toe clears the floor as it swings through
+    const Lg = LEGLEN - 1.5 - 7.5 * Math.exp(-((a / 22) ** 2));
+    const ank = a3(hipL, [Lg * Math.sin(a * D2R), -Lg * Math.cos(a * D2R), 2.5]);
+    const f = pitchFoot(-a * 0.85);
+    return { ankle: ank, pole: [1, 0.15, 0], foot: f.fd, sole: f.dn };
+  };
+  wuFig({
+    id: "leg-swing", frame: { k: 1.12, cx: 150, cy: 150 }, shadowR: 30,
+    keys: { back: { a: -32 }, front: { a: 80 } }, ghostKey: "front",
+    seq: [
+      { label: "Swing up", dur: 0.8, from: "back", to: "front", ease: "inOut", effort: 1 },
+      { label: "Swing back", dur: 0.8, from: "front", to: "back", ease: "inOut", effort: 0.6 },
+    ],
+    muscles: { hams: 1, glutes: 0.5, quads: 0.3 },
+    spec: p => ({ pelvis: PEL, spine: tilt2(-2 - 0.06 * Math.max(0, p.a)), lat: FACE_RIGHT, head: 0,
+      legs: { R: { ankle: [0, 8.4, -11], pole: [1, 0.2, 0], foot: [1, 0, 0] }, L: legFor(p.a) }, arms: handsOnHips }),
+    draw(J, p, ctx, P) {
+      const top = P(a3(J.head, [0, 12, 0])), base = P([J.pelvis[0], 2, 0]);
+      return {
+        back: [cueLine([top[0], top[1]], [base[0], base[1]], true)],
+        labels: [
+          { at: [top[0] - 6, top[1] + 2], text: "TALL TORSO", on: true, anchor: "end" },
+          { at: [P(J.pelvis)[0] + 30, P([0, 0, 0])[1] - 12], text: "LOOSE SWING", on: p.a > 56, anchor: "start" },
+        ],
+        count: "LEFT LEG",
+      };
+    },
+  });
+})();
+
+/* ---- Lateral leg swings (front): near leg swings out to the side and across in front of the standing leg ---- */
+(() => {
+  const cam = camera3(6, 150, 262, -10);
+  const PEL = [1.5, 91.2, 0];
+  const hipL = a3(PEL, [-8.6, 0, 0]);
+  const legFor = b => {
+    const Lg = LEGLEN - 1.5 - 6 * Math.exp(-(((b - 4) / 16) ** 2));
+    const ank = a3(hipL, m3(n3([Math.sin(b * D2R), -Math.cos(b * D2R), 0.22]), Lg));   // swings in front of the standing leg
+    return { ankle: ank, pole: [0.1, 0.1, 1], foot: [0.1, -0.15 * Math.abs(b) / 40, 1] };
+  };
+  wuFig({
+    id: "lateral-leg-swing", view: "FRONT", cam, frame: { k: 1.12, cx: 150, cy: 150 }, floorZ: 12, shadowR: 34, shadowFlat: 0.3,
+    keys: { out: { b: -38 }, across: { b: 26 } }, ghostKey: "out",
+    seq: [
+      { label: "Out", dur: 0.8, from: "across", to: "out", ease: "inOut", effort: 1 },
+      { label: "Across", dur: 0.8, from: "out", to: "across", ease: "inOut", effort: 0.7 },
+    ],
+    muscles: { abductorsL: 1 },
+    spec: p => ({ pelvis: PEL, spine: n3([0.02, 1, 0.03]), head: 0,
+      legs: { R: { ankle: [11, 8.4, 0], pole: [0.1, 0.2, 1], foot: [0.1, 0, 1] }, L: legFor(p.b) }, arms: handsOnHips }),
+    draw(J, p, ctx, P) {
+      const hR = P(J.hipR), hL = P(J.hipL), mid = [(hR[0] + hL[0]) / 2, (hR[1] + hL[1]) / 2];
+      const level = cueLine([mid[0] - 44, mid[1] - 1], [mid[0] + 44, mid[1] - 1], true);
+      return {
+        back: [level],
+        labels: [
+          { at: [mid[0] + 48, mid[1] + 3], text: "HIPS LEVEL", on: true, anchor: "start" },
+          { at: [150, atPageY({ k: 1.12, cy: 150 }, 52)], text: p.b < -30 ? "OUT" : p.b > 18 ? "ACROSS" : "", on: true, anchor: "middle" },
+        ],
+        count: "LEFT LEG",
+      };
+    },
+  });
+})();
+
+/* ---- Cat-cow (side): hands and knees planted; round the whole spine up, then let the belly drop and look forward ---- */
+(() => {
+  const PEL = [0, 48.5, 0], BASE = 80;
+  const kneelAnk = [-42, 4.6];
+  const footK = kneelFoot(27.9);
+  const shY = (tilt, curl) => solve3({ pelvis: PEL, spine: tilt2(tilt), lat: FACE_RIGHT, curl, legs: standLegs(0), arms: { R: { at: [0, 0, 0], pole: [0, -1, 0] }, L: { at: [0, 0, 0], pole: [0, -1, 0] } } }).shoulder;
+  const ref = shY(BASE, 0);
+  // the spine base tilts so the shoulders stay over the hands while the spine curls
+  const tiltFor = curl => { let lo = BASE - 40, hi = BASE + 40; for (let k = 0; k < 40; k++) { const m = (lo + hi) / 2; if (shY(m, curl)[1] > ref[1]) lo = m; else hi = m; } return (lo + hi) / 2; };
+  const T_CAT = tiltFor(30), T_COW = tiltFor(-24);
+  const WX = ref[0] + 3;
+  const legs = {};
+  for (const [S, sg] of [["R", 1], ["L", -1]]) legs[S] = { ankle: [kneelAnk[0], kneelAnk[1], -sg * 9], pole: [0, -1, 0], foot: footK.fd, sole: footK.dn };
+  wuFig({
+    id: "cat-cow", frame: { k: 1.24, cx: 162, cy: 196 }, shadowR: 66, shadowX: 6, shadowFlat: 0.1,
+    keys: { mid: { c: 0, t: BASE, h: 4 }, cat: { c: 30, t: T_CAT, h: -26 }, cow: { c: -24, t: T_COW, h: 24 } }, ghostKey: "cow",
+    ghostFor: near => (near === "cat" ? "cow" : "cat"),
+    seq: [
+      { label: "Cat", dur: 1.6, from: "cow", to: "cat", ease: "inOut", effort: 0.9 },
+      { label: "Hold", dur: 0.6, from: "cat", to: "cat", effort: 1 },
+      { label: "Cow", dur: 1.6, from: "cat", to: "cow", ease: "inOut", effort: 0.7 },
+      { label: "Hold", dur: 0.6, from: "cow", to: "cow", effort: 0.8 },
+    ],
+    muscles: { core: 1, erectors: 0.6 },
+    spec: p => ({ pelvis: PEL, spine: tilt2(p.t), lat: FACE_RIGHT, curl: p.c, head: p.h, legs,
+      arms: J => { const o = {}; for (const S of ["R", "L"]) o[S] = { at: a3([WX, 3.6, 0], m3(out3(J, S), 17.5)), pole: a3([-0.4, -0.6, 0], m3(out3(J, S), 0.4)), wrist: true, hand: [1, 0, 0] }; return o; } }),
+    draw(J, p, ctx, P) {
+      const top = P(J.T(0.55, 0, -14));
+      const cat = p.c > 26, cow = p.c < -20;
+      return {
+        labels: [
+          { at: [top[0], top[1] - 18], text: "CAT · ROUND UP", on: cat, anchor: "middle" },
+          { at: [top[0], P([0, 0, 0])[1] + 16], text: "COW · BELLY DOWN", on: cow, anchor: "middle" },
+        ],
+      };
+    },
+  });
+})();
+
+/* ---- Hip circles (3/4 front): stand tall on the far leg, the near knee draws a big circle:
+   up in front, open out to the side, down, and back in. One way, then the other ---- */
+(() => {
+  const cam = camera3(12, 150, 262, -30);
+  const PEL = [2, 91.2, 0];
+  const hipL = a3(PEL, [-8.6, 0, 0]);
+  // knee direction on a cone: axis forward, out and down; angle 0 = straight ahead and up
+  const AX = n3([-0.42, -0.42, 0.8]), U0 = n3(s3([0, 1, 0], m3(AX, d3([0, 1, 0], AX)))), V0 = x3(AX, U0);
+  const CONE = 46 * D2R;
+  const kneeDir = th => n3(a3(m3(AX, Math.cos(CONE)), m3(a3(m3(U0, Math.cos(th)), m3(V0, Math.sin(th))), Math.sin(CONE))));
+  const phases = [
+    { label: "Circle out", dur: 3, effort: 0.9 },
+    { label: "Circle in", dur: 3, effort: 0.9 },
+  ];
+  // out: up, across the front, out to the side; V0 points to the body's left (-x) here
+  const thOf = a => (a.i === 0 ? 1 : -1) * 2 * Math.PI * easeTravel(a.pt) * (V0[0] < 0 ? 1 : -1);
+  const legFor = th => {
+    const kd = kneeDir(th), kn = a3(hipL, m3(kd, B.thigh));
+    // shin hangs under the knee, swung slightly back
+    const sd = n3([kd[0] * 0.25, -1, -0.2 + 0.2 * Math.max(0, -kd[2])]);
+    return { knee: kn, ankle: a3(kn, m3(sd, B.shin)), pole: [0, 0, 1], foot: n3([kd[0] * 0.3, -0.35, 1]), sole: [0, -1, 0] };
+  };
+  wuFig({
+    id: "hip-circles", view: "3/4 FRONT", cam, frame: { k: 1.1, cx: 150, cy: 152 }, floorZ: 12, shadowR: 32, shadowFlat: 0.3,
+    phases, muscles: { abductorsL: 1, quadsL: 0.5 },
+    spec: a => ({ pelvis: PEL, spine: n3([0.03, 1, 0]), head: 0,
+      legs: { R: { ankle: [11, 8.4, 0], pole: [0.1, 0.2, 1], foot: [0.1, 0, 1] }, L: legFor(thOf(a)) }, arms: handsOnHips }),
+    draw(J, a, ctx, P) {
+      const pts = [];
+      for (let i = 0; i < 32; i++) pts.push(P(a3(hipL, m3(kneeDir(i / 32 * 2 * Math.PI), B.thigh))));
+      const hR = P(J.hipR), hL = P(J.hipL), mid = [(hR[0] + hL[0]) / 2, (hR[1] + hL[1]) / 2];
+      return {
+        back: [cueLoop(pts, true), cueLine([mid[0] - 40, mid[1] - 1], [mid[0] + 44, mid[1] - 1], true)],
+        labels: [
+          { at: [mid[0] + 48, mid[1] + 3], text: "HIPS LEVEL", on: true, anchor: "start" },
+          { at: [150, P(J.head)[1] - 28], text: "BIG CIRCLES", on: true, anchor: "middle" },
+        ],
+        count: a.i === 0 ? "OUT 08" : "IN 08",
+      };
+    },
+  });
+})();
+
+/* ---- Thoracic rotations, half-kneeling (front, raised): hips square, hands behind the head,
+   turn the upper back toward the front knee and come back ---- */
+(() => {
+  const cam = camera3(30, 150, 262, 40);
+  const PY = 47.6, PEL = [0, PY, 0];
+  const legs = {
+    // rear knee down under the hip, shin and top of the foot flat behind
+    L: { knee: [-8.6, 5.4, -1.6], ankle: [-8.6, 4.4, -44], pole: [0, -1, 0], foot: n3([0, 0.05, -1]), sole: [0, 1, 0] },
+    // front foot flat, shin vertical, knee a touch above the hip
+    R: { knee: [9.4, 50.4, 42.3], ankle: [9.4, 8.4, 42.6], pole: [0, 0.2, 1], foot: [0.05, 0, 1] },
+  };
+  const arms = J => {
+    const o = {}, lt = J.latTop || J.lat, at = J.antTop;
+    for (const [S, sg] of [["R", 1], ["L", -1]]) {
+      const grip = a3(a3(J.head, m3(at, -9.5)), a3(m3(lt, sg * 3.2), m3(J.sTop, 1.5)));
+      o[S] = { at: grip, pole: n3(a3(m3(lt, sg), a3(m3(at, 0.35), [0, 0.5, 0]))) };
+    }
+    return o;
+  };
+  wuFig({
+    id: "thoracic-rotation", view: "3/4 FRONT · HIGH", cam, frame: { k: 1.2, cx: 150, cy: 168 }, floorZ: 30, shadowR: 44, shadowFlat: 0.45,
+    keys: { mid: { tw: 0 }, turn: { tw: 52 } }, ghostKey: "turn",
+    seq: [
+      { label: "Rotate", dur: 1.4, from: "mid", to: "turn", ease: "inOut", effort: 1 },
+      { label: "Hold", dur: 0.6, from: "turn", to: "turn", effort: 1 },
+      { label: "Return", dur: 1.4, from: "turn", to: "mid", ease: "inOut", effort: 0.5 },
+      { label: "Reset", dur: 0.4, from: "mid", to: "mid", effort: 0.2 },
+    ],
+    muscles: { core: 0.55, delts: 0.3 },
+    spec: p => ({ pelvis: PEL, spine: [0, 1, 0], head: -4, twist: p.tw, legs, arms }),
+    draw(J, p, ctx, P) {
+      const hR = P(J.hipR), hL = P(J.hipL), eR = P(J.elbowR), eL = P(J.elbowL);
+      const hips = cueLine(add(hL, mul(nrm(sub(hR, hL)), -16)), add(hR, mul(nrm(sub(hR, hL)), 16)), true);
+      const shoulders = cueLine(eL, eR, p.tw > 46);
+      return {
+        back: [hips],
+        items: [{ depth: 900, tag: "elbowline", els: [shoulders] }],
+        labels: [
+          { at: [P(J.pelvis)[0] - 34, P(J.pelvis)[1] + 6], text: "HIPS SQUARE", on: true, anchor: "end" },
+          { at: [150, P(J.head)[1] - 32], text: "TURN UPPER BACK", on: p.tw > 46, anchor: "middle" },
+        ],
+        count: "8 EACH SIDE",
+      };
+    },
+  });
+})();
+
+/* ---- Band dislocates (3/4 front): wide grip, arms locked, the band travels from the thighs
+   up over the head and down behind the back, then returns ---- */
+(() => {
+  const cam = camera3(10, 150, 262, -52);
+  const PEL = [0, 91.2, 0], W = 40 * D2R;
+  const dirFor = (J, S, ph) => {
+    const ou = out3(J, S), r = ph * D2R;
+    return n3(a3(m3(ou, Math.sin(W)), m3(a3(m3(J.ant, Math.sin(r)), m3([0, 1, 0], -Math.cos(r))), Math.cos(W))));
+  };
+  wuFig({
+    id: "band-dislocate", view: "3/4 FRONT", cam, frame: { k: 0.98, cx: 150, cy: 146 }, floorZ: 12, shadowR: 40, shadowFlat: 0.3,
+    keys: { front: { ph: 14 }, back: { ph: 332 } }, ghostKey: "back",
+    seq: [
+      { label: "Over", dur: 2, from: "front", to: "back", ease: "inOut", effort: 0.9 },
+      { label: "Behind", dur: 0.4, from: "back", to: "back", effort: 0.9 },
+      { label: "Return", dur: 2, from: "back", to: "front", ease: "inOut", effort: 0.7 },
+      { label: "Reset", dur: 0.3, from: "front", to: "front", effort: 0.3 },
+    ],
+    muscles: { delts: 1, frontdelt: 0.4 },
+    spec: p => ({ pelvis: PEL, spine: [0, 1, 0], head: -3, legs: standLegsFront(0, 12),
+      arms: J => ({ R: straightArm(J, "R", dirFor(J, "R", p.ph)), L: straightArm(J, "L", dirFor(J, "L", p.ph)) }) }),
+    draw(J, p, ctx, P) {
+      // the band crosses from in front of the body to behind it, so it sorts live (left out of calibration)
+      const items = ctx.uid === "cal" ? [] : [{ depth: (cam.depth(J.gripR) + cam.depth(J.gripL)) / 2, tag: "band-live", els: [pth(`M${P2(P(J.gripR))}L${P2(P(J.gripL))}`, "cable")] }];
+      return {
+        items,
+        labels: [
+          { at: [150, atPageY({ k: 0.98, cy: 146 }, 40)], text: "OVER AND BEHIND", on: p.ph > 150 && p.ph < 330, anchor: "middle" },
+          { at: [150, atPageY({ k: 0.98, cy: 146 }, 270)], text: "ARMS STRAIGHT", on: true, anchor: "middle" },
+        ],
+      };
+    },
+  });
+})();
+
+/* ---- Scapular push-ups (side): top of a push-up, elbows locked. The chest sinks between the
+   shoulder blades, then the floor gets pushed away until the upper back rounds ---- */
+(() => {
+  const G = makePushup({ handZ: 20, ahead: 3, botY: 26, head: 4, pole: [-1, 0.55, 0], flare: 0.55, handOut: 0.15 });
+  const Y0 = G.PL.shoulderAt(G.aTop)[1];
+  // keep the shoulder joints where the locked arms put them; the torso moves around them
+  const aFor = off => G.PL.angleForShoulderY(Y0 + off * 0.93);
+  wuFig({
+    id: "scapular-pushup", frame: { k: 1.42, cx: 162, cy: 214 }, shadowR: 76, shadowX: 10,
+    keys: { push: { b: 2.6 }, sink: { b: -3.2 } }, ghostKey: "sink",
+    ghostFor: near => (near === "push" ? "sink" : "push"),
+    seq: [
+      { label: "Sink", dur: 1, from: "push", to: "sink", ease: "inOut", effort: 0.7 },
+      { label: "Squeeze", dur: 0.5, from: "sink", to: "sink", effort: 0.8 },
+      { label: "Push away", dur: 1, from: "sink", to: "push", ease: "inOut", effort: 1 },
+      { label: "Spread", dur: 0.5, from: "push", to: "push", effort: 1 },
+    ],
+    muscles: { midback: 1, chest: 0.4, frontdelt: 0.4 },
+    spec: p => Object.assign(G.spec({ a: aFor(p.b) }), { shAnt: p.b }),
+    draw(J, p, ctx, P) {
+      const top = P(J.T(0.82, 0, -16));
+      return {
+        back: [bodyLine(P, J, false)],
+        labels: [
+          { at: [top[0], top[1] - 14], text: p.b > 2 ? "SPREAD BLADES" : p.b < -2.6 ? "SQUEEZE BLADES" : "", on: true, anchor: "middle" },
+          { at: [P(J.elbowL)[0] + 12, P(J.elbowL)[1] + 2], text: "ELBOWS LOCKED", on: true, anchor: "start" },
+        ],
+      };
+    },
+  });
+})();
+
+/* ---- Scapular pull-ups (side, 2D like the dead hang): arms stay straight; the shoulders
+   pull down away from the ears and the body rises a few centimetres, then relaxes ---- */
+(() => {
+  const BAR = HANG_BAR;
+  const legs = { thighN: 177, shinN: 183, footN: 166, thighF: 180, shinF: 188, footF: 171 };
+  // d: how far the torso rides up over the shoulder joints (cm). - = shrugged, relaxed hang
+  const solveHang = d => {
+    const pose = Object.assign({ trunk: -3 - 0.5 * d, head: 0, anchor: [145, BAR[1] + 61.2 - d] }, legs);
+    const J = solveSide(pose, "shoulder", () => ({ N: { at: [BAR[0], BAR[1] - d], pref: [1, 0.8] }, F: { at: [BAR[0], BAR[1] - d], pref: [1, 0.8] } }));
+    for (const s of ["N", "F"]) for (const k of ["elbow", "wrist", "grip", "handEnd"]) J[k + s] = add(J[k + s], [0, d]);
+    J.shoulder = add(J.shoulder, [0, d]);
+    return J;
+  };
+  FIGS.push({
+    id: "scapular-pull", view: "SIDE",
+    frame: { k: 1, cx: 150, cy: 162 },
+    keys: { hang: { d: -3.2 }, pull: { d: 2.8 } }, ghostKey: "pull",
+    seq: [
+      { label: "Pull down", dur: 0.9, from: "hang", to: "pull", ease: "inOut", effort: 1 },
+      { label: "Hold", dur: 0.8, from: "pull", to: "pull", effort: 1 },
+      { label: "Release", dur: 1.2, from: "pull", to: "hang", ease: "inOut", effort: 0.5 },
+      { label: "Hang", dur: 0.5, from: "hang", to: "hang", effort: 0.3 },
+    ],
+    muscles: { lats: 1, traps: 0.5, forearms: 0.5 },
+    build(p, ctx) {
+      const J = solveHang(p.d), on = p.d > 2.4;
+      const ear = J.H([-1.6, 0.6]), sh = J.shoulder;
+      const gap = pth(`M${P(add(ear, [-7, 0]))}H${r1(ear[0] - 15)}M${P(add(sh, [-7, -2]))}H${r1(ear[0] - 15)}M${r1(ear[0] - 12)} ${r1(ear[1])}V${r1(sh[1] - 2)}`, "cue" + (on ? " on" : ""), "stroke-dasharray:none");
+      const els = drawSide(J, ctx.mus, {
+        back: [...floorEls(HANG_FLOOR, 40, 260), floorShadow(ctx, 146, HANG_FLOOR, 26, 0.45), ...hangRig(BAR), gap],
+        front: hangBarEls(BAR),
+      });
+      return { els, J, labels: [
+        { at: [ear[0] - 16, (ear[1] + sh[1]) / 2 + 3], text: on ? "SHOULDERS DOWN" : p.d < -2.8 ? "RELAX UP" : "", on: true, anchor: "end" },
+        { at: [BAR[0] + 10, BAR[1] + 40], text: "ARMS STRAIGHT", on: true, anchor: "start" },
+      ] };
+    },
+  });
+})();
+
+/* ---- Single-arm dumbbell row (side): far knee and hand on the bench, near foot on the floor,
+   flat back; the near elbow drives up past the ribs toward the hip ---- */
+(() => {
+  const PEL = [0, 91.4, 0], S0 = tilt2(78);
+  const base = solve3({ pelvis: PEL, spine: S0, lat: FACE_RIGHT, head: 12, legs: standLegs(0), arms: { R: { at: [0, 0, 0], pole: [0, -1, 0] }, L: { at: [0, 0, 0], pole: [0, -1, 0] } } });
+  const shL = base.shL, WX = base.shR[0] + 2;
+  const HANG = [shL[0] + 2, shL[1] - (B.ua + B.grip) + 1.4, shL[2] + 2];
+  const TOP = a3(base.T(0.28, 0, 0), [-2, -4, 0]); TOP[2] = 14.5;
+  const MIDP = [shL[0] - 10, (HANG[1] + TOP[1]) / 2 - 2, 15];
+  const gripAt = d => { const e = d; const q = lerp(1 - e, 0, 0); void q; const u = 1 - e;
+    return a3(a3(m3(HANG, u * u), m3(MIDP, 2 * u * e)), m3(TOP, e * e)); };
+  const legs = {
+    R: { knee: [-3, 49.3, -8.6], ankle: [-45, 49.6, -8.6], pole: [0, -1, 0], foot: [-1, 0.02, 0], sole: [0, 1, 0] },
+    L: { ankle: [10, 8.4, 15], pole: [1, 0.2, 0.2], foot: [1, 0, 0.12] },
+  };
+  sideMove({
+    id: "db-row", frame: { k: 1.3, cx: 156, cy: 172 }, shadowR: 50, shadowX: 4,
+    keys: { hang: { d: 0 }, top: { d: 1 } }, ghostKey: "top",
+    seq: [
+      { label: "Row", dur: 1, from: "hang", to: "top", ease: "inOut", effort: 1 },
+      { label: "Squeeze", dur: 0.5, from: "top", to: "top", effort: 1 },
+      { label: "Lower", dur: 1.6, from: "top", to: "hang", ease: "inOut", effort: 0.6 },
+      { label: "Stretch", dur: 0.3, from: "hang", to: "hang", effort: 0.3 },
+    ],
+    muscles: { lats: 1, midback: 0.6, biceps: 0.4 },
+    spec: p => ({ pelvis: PEL, spine: S0, lat: FACE_RIGHT, head: 12, legs,
+      arms: { R: { at: [WX, BENCH.top + 3.6, -17.5], pole: [-0.3, -0.5, -0.5], wrist: true, hand: [1, 0, 0] },
+        L: { at: gripAt(p.d), pole: [-0.35, 1, 0.25] } } }),
+    draw(J, p, ctx, P) {
+      const back = m3(J.ant, -1);
+      const a = P(a3(a3(J.pelvis, m3(J.s, -4)), m3(back, 15))), b = P(a3(a3(J.shoulder, m3(J.s, 10)), m3(back, 15)));
+      const hip = P(J.T(0.12, 0, 0));
+      return {
+        back: [...flatBenchEls(P, -62, 66), cueLine(a, b, true)],
+        items: [{ depth: 999, tag: "dbL", els: dumbbellAlong(P(J.gripL), [1, 0], "iron", 18) }],
+        labels: [
+          { at: [b[0] + 2, b[1] - 8], text: "FLAT BACK", on: true, anchor: "middle" },
+          { at: [hip[0] - 44, hip[1] - 26], text: "ELBOW TO HIP", on: p.d > 0.95, anchor: "end" },
+        ],
+        count: "LEFT ARM",
+      };
+    },
+  });
+})();
+
+/* ---- Wrist rocks (side): on hands and knees, palms flat and fingers forward;
+   rock the shoulders forward past the wrists, then back ---- */
+(() => {
+  const KX = -2, KY = 5.4;
+  const footK = kneelFoot(27.1);
+  const pelAt = al => [KX + B.thigh * Math.sin(al * D2R), KY + B.thigh * Math.cos(al * D2R), 0];
+  const base = solve3({ pelvis: pelAt(0), spine: tilt2(80), lat: FACE_RIGHT, legs: standLegs(0), arms: { R: { at: [0, 0, 0], pole: [0, -1, 0] }, L: { at: [0, 0, 0], pole: [0, -1, 0] } } });
+  const WX = base.shoulder[0] + 1;
+  const legs = {};
+  for (const [S, sg] of [["R", 1], ["L", -1]]) legs[S] = { knee: [KX, KY, -sg * 8.6], ankle: [KX - 42, 4.4, -sg * 9], pole: [0, -1, 0], foot: footK.fd, sole: footK.dn };
+  wuFig({
+    id: "wrist-rocks", frame: { k: 1.24, cx: 160, cy: 196 }, shadowR: 66, shadowX: 6, shadowFlat: 0.1,
+    keys: { back: { al: -4, t: 82 }, fwd: { al: 22, t: 86 } }, ghostKey: "fwd",
+    seq: [
+      { label: "Rock forward", dur: 1.4, from: "back", to: "fwd", ease: "inOut", effort: 1 },
+      { label: "Hold", dur: 0.6, from: "fwd", to: "fwd", effort: 1 },
+      { label: "Rock back", dur: 1.4, from: "fwd", to: "back", ease: "inOut", effort: 0.4 },
+      { label: "Reset", dur: 0.3, from: "back", to: "back", effort: 0.2 },
+    ],
+    muscles: { forearms: 1 },
+    spec: p => ({ pelvis: pelAt(p.al), spine: tilt2(p.t), lat: FACE_RIGHT, head: 8, legs,
+      arms: J => { const o = {}; for (const S of ["R", "L"]) o[S] = { at: a3([WX, 3.6, 0], m3(out3(J, S), 17.5)), pole: a3([-0.5, -0.4, 0], m3(out3(J, S), 0.4)), wrist: true, hand: [1, 0, 0] }; return o; } }),
+    draw(J, p, ctx, P) {
+      const w = P([WX, 0, 0]), past = P(J.shoulder)[0] > w[0] + 8;
+      return {
+        back: [cueLine([w[0], w[1]], [w[0], w[1] - 80], past)],
+        labels: [
+          { at: [w[0] + 4, w[1] - 84], text: "SHOULDERS PAST WRISTS", on: past, anchor: "middle" },
+          { at: [w[0] + 6, w[1] + 14], text: "PALMS FLAT", on: true, anchor: "middle" },
+        ],
+      };
+    },
+  });
+})();
+
+/* ---- Lateral band walks (front): band round the ankles, half squat, knees pushed out;
+   the lead foot steps out, the trail foot follows without letting the band go slack.
+   The camera follows the hips and the floor scrolls, so planted feet stay planted ---- */
+(() => {
+  const cam = camera3(8, 150, 262, -14);
+  const STEP = 20, W0 = 13, PY = 79.5;
+  const S0 = n3([0, Math.cos(16 * D2R), Math.sin(16 * D2R)]);
+  // u in [0, 2): two step pairs. Returns world x of each foot, their lift, and the hips
+  const at = u => {
+    const r = Math.min(1, Math.floor(u)), s = u - r, X0 = r * STEP;
+    let xR, xL, lR = 0, lL = 0;
+    if (s < 0.5) { const e = sstep(s / 0.5); xR = X0 + W0 + STEP * e; lR = 4 * bump(s / 0.5); xL = X0 - W0; }
+    else { const e = sstep((s - 0.5) / 0.5); xR = X0 + W0 + STEP; xL = X0 - W0 + STEP * e; lL = 4 * bump((s - 0.5) / 0.5); }
+    return { r, s, xR, xL, lR, lL, px: (xR + xL) / 2 };
+  };
+  const keys = { a0: { u: 0 }, a1: { u: 0.5 }, b0: { u: 1 }, b1: { u: 1.5 }, end: { u: 2 } };
+  wuFig({
+    id: "lateral-band-walk", view: "FRONT", cam, frame: { k: 1.16, cx: 150, cy: 158 }, floorZ: 12, shadowR: 40, shadowFlat: 0.35,
+    keys, noGhost: true, ghostKey: "a1",
+    seq: [
+      { label: "Step out", dur: 0.7, from: "a0", to: "a1", effort: 1 },
+      { label: "Follow", dur: 0.7, from: "a1", to: "b0", effort: 0.8 },
+      { label: "Step out", dur: 0.7, from: "b0", to: "b1", effort: 1 },
+      { label: "Follow", dur: 0.7, from: "b1", to: "end", effort: 0.8 },
+    ],
+    floorShift: p => -at(p.u).px,
+    muscles: { abductors: 1, quads: 0.35 },
+    spec: p => {
+      const q = at(p.u), ox = -q.px;
+      return { pelvis: [0, PY, -4], spine: S0, head: -10,
+        legs: {
+          R: { ankle: [q.xR + ox, 8.4 + q.lR, 2], pole: [0.45, 0.1, 1], foot: [0.14, 0, 1] },
+          L: { ankle: [q.xL + ox, 8.4 + q.lL, 2], pole: [-0.45, 0.1, 1], foot: [-0.14, 0, 1] },
+        },
+        arms: J => { const o = {}; for (const [S, sg] of [["R", 1], ["L", -1]]) o[S] = { at: a3(J.T(0.72, sg * 6, 26), [0, -6, 0]), pole: [sg, -0.6, -0.3] }; return o; } };
+    },
+    draw(J, p, ctx, P) {
+      const q = at(p.u);
+      const bR = a3(mix3(J.ankleR, J.kneeR, 0.18), [0, 0, 4]), bL = a3(mix3(J.ankleL, J.kneeL, 0.18), [0, 0, 4]);
+      const kR = P(J.kneeR), kL = P(J.kneeL);
+      const wide = q.xR - q.xL > 2 * W0 + STEP * 0.7;
+      return {
+        items: [{ depth: 999, tag: "band", els: [pth(`M${P2(P(bR))}L${P2(P(bL))}`, "cable")] }],
+        back: [cueLine(add(kL, [-14, 0]), add(kL, [-2, 0]), true), cueLine(add(kR, [2, 0]), add(kR, [14, 0]), true)],
+        labels: [
+          { at: [Math.max(kR[0], kL[0]) + 18, kR[1] + 3], text: "KNEES OUT", on: true, anchor: "start" },
+          { at: [150, atPageY({ k: 1.16, cy: 158 }, 52)], text: "BAND TIGHT", on: wide, anchor: "middle" },
+        ],
+        count: `STEP ${String(q.r * 2 + (q.s >= 0.5 ? 2 : 1)).padStart(2, "0")} / 10`,
+      };
+    },
+  });
+})();
+
+/* ---- Walking knee hugs (side): drive one knee up, pull it to the chest with both hands and
+   stand tall for a beat, then step through onto it. Left, then right. Camera follows ---- */
+(() => {
+  const S = 50;
+  const TOEB = [-S + 14, 2.8, 0];
+  const PELV = [[0, -0.5 * S, 86], [0.2, -0.08 * S, 89.4], [0.42, 0, 90.4], [0.6, 0, 90.4], [0.86, 0.42 * S, 86.4], [1, 0.5 * S, 86]];
+  const HIP_HUG = [0, 90.4];
+  const thigh = 128 * D2R, kn = [HIP_HUG[0] + B.thigh * Math.sin(thigh), HIP_HUG[1] - B.thigh * Math.cos(thigh)];
+  const HUGA = [kn[0] - 9, kn[1] - 41];
+  const SWING = [[0.2, 0, 0], [0.42, HUGA[0], HUGA[1]], [0.6, HUGA[0], HUGA[1]], [0.74, S * 0.62, 34], [0.86, S - 2, 12], [1, S, 8.4]];
+  // one step, local x: stance foot at 0, hugging foot starts flat at -S
+  const stepAt = s => {
+    const pel = trackXY(PELV, s);
+    let ank, th;
+    if (s < 0.2) { th = 34 * sstep(s / 0.2); const a = ankleOnToe(TOEB, th); ank = [a[0], a[1]]; }
+    else {
+      const a0 = ankleOnToe(TOEB, 34), K = SWING.map((k, i) => (i === 0 ? [k[0], a0[0], a0[1]] : k));
+      ank = trackXY(K, s);
+      th = s < 0.42 ? lerp(34, 18, sstep(seg01(s, 0.2, 0.42))) : s < 0.6 ? 18 : s < 0.86 ? lerp(18, -8, sstep(seg01(s, 0.6, 0.86))) : lerp(-8, 0, sstep(seg01(s, 0.86, 0.95)));
+      if (s > 0.95) { th = 0; ank = [S, 8.4]; }
+    }
+    const hug = sstep(seg01(s, 0.27, 0.42)) * (1 - sstep(seg01(s, 0.6, 0.72)));
+    return { pel, ank, th, hug };
+  };
+  const at = u => { const rep = Math.min(1, Math.floor(u)), s = u - rep, st = stepAt(s), x0 = rep * S; return { rep, s, st, x0, camX: x0 + st.pel[0] }; };
+  const ZN = 9, ZF = -9;
+  const specOf = (p, armsFn) => {
+    const { rep, st, x0, camX } = at(p.u), ox = x0 - camX, nearHugs = rep === 0;
+    const pel = [st.pel[0] + ox, st.pel[1], 0];
+    const hugLeg = legAt([st.ank[0] + ox, st.ank[1], nearHugs ? ZN : ZF], st.th, [1, 0.55, 0]);
+    const stand = legAt([ox, 8.4, nearHugs ? ZF : ZN], 0);
+    const legs = nearHugs ? { L: hugLeg, R: stand } : { L: stand, R: hugLeg };
+    for (const [Sd, sg] of [["R", 1], ["L", -1]]) legs[Sd].ankle = softReach(a3(pel, [0, 0, -sg * 8.6]), legs[Sd].ankle, LEGLEN - 1.2, 2);
+    return { pelvis: pel, spine: tilt2(-3 * st.hug), lat: FACE_RIGHT, head: 0, legs, arms: armsFn };
+  };
+  const armsFor = p => J => {
+    // where the hugged knee is: solve the legs once without the arms
+    const { rep, st } = at(p.u), H = rep === 0 ? "L" : "R";
+    const J0 = solve3(specOf(p, { R: { at: [0, 0, 0], pole: [0, -1, 0] }, L: { at: [0, 0, 0], pole: [0, -1, 0] } }));
+    const shin = a3(mix3(J0["knee" + H], J0["ankle" + H], 0.22), [4, 0, 0]);
+    const o = {};
+    for (const Sd of ["R", "L"]) {
+      const ou = out3(J, Sd), sh = J["sh" + Sd];
+      const hang = a3(sh, a3([2, -(B.ua + B.grip) + 6, 0], m3(ou, 4)));
+      const hug = a3(shin, [0, 0, Sd === "L" ? 4.5 : -4.5]);
+      o[Sd] = { at: softReach(sh, mix3(hang, hug, st.hug), B.ua + B.grip, 5), pole: n3(a3(mix3([-1, -0.15, 0], [-0.2, -0.5, 0], st.hug), m3(ou, lerp(0.25, 0.9, st.hug)))) };
+    }
+    return o;
+  };
+  const keys = {}, seq = [];
+  const PH = [0, 0.42, 0.6, 1], names = ["Lift", "Hug", "Step"], durs = [1.3, 0.6, 1.2];
+  for (let r = 0; r < 2; r++) for (let i = 0; i < 3; i++) {
+    keys["k" + r + i] = { u: r + PH[i] };
+    seq.push({ label: i === 0 ? (r === 0 ? "Lift L" : "Lift R") : names[i], dur: durs[i], from: "k" + r + i, to: i === 2 ? (r === 0 ? "k10" : "end") : "k" + r + (i + 1), effort: [0.7, 1, 0.5][i] });
+  }
+  keys.end = { u: 2 };
+  wuFig({
+    id: "knee-hug", frame: { k: 1.12, cx: 150, cy: 154 }, shadowR: 40,
+    keys, seq, ghostKey: "k01", noGhost: true,
+    floorShift: p => -at(p.u).camX,
+    muscles: { glutes: 1, hams: 0.4 },
+    spec: p => specOf(p, armsFor(p)),
+    draw(J, p, ctx, P) {
+      const { st, rep } = at(p.u), hold = st.hug > 0.98;
+      const head = P(J.head);
+      return {
+        labels: [
+          { at: [head[0] + 30, head[1] + 40], text: "KNEE TO CHEST", on: hold, anchor: "start" },
+          { at: [head[0] - 18, head[1] - 12], text: "STAND TALL", on: hold, anchor: "end" },
+        ],
+        count: rep === 0 ? "LEFT KNEE" : "RIGHT KNEE",
+      };
+    },
+  });
+})();
+
+/* ---- Push-up walkouts (side): soft knees, fold and plant the hands, walk them out one at a
+   time into a full push-up position, hold, walk back in and stand. The toes stay put; the
+   heels lift as the body lengthens. Planted hands and toes are solved, never eased ---- */
+(() => {
+  const TOE = [14, 2.8, 0], TH1 = 51.5, LP = B.thigh + B.shin - 0.6, REACH = B.ua + B.fa - 0.5;
+  const WY = 3.6, HZ = 20;
+  const A1 = ankleOnToe(TOE, TH1);
+  // arms a touch short of straight, so a hand stepping behind the shoulder can still reach the floor
+  const RCH = REACH - 0.8;
+  const topY = WY + Math.sqrt(RCH * RCH - 9 - (17.5 - HZ) ** 2);
+  const smin = (a, b, k) => -k * Math.log(Math.exp(-a / k) + Math.exp(-b / k));
+  const aP = Math.asin((topY - A1[1]) / (LP + B.sh));
+  const S1 = [A1[0] + Math.cos(aP) * (LP + B.sh), topY];
+  const H1 = S1[0] - 3, H0 = 34;
+  const S0 = [H0 - 52 * Math.sin(20 * D2R), WY + 52 * Math.cos(20 * D2R)];
+  const E2 = w => sstep(sstep(w));
+  const LF = 78;
+  // body from the hand midpoint: shoulders ride over the hands, hips solved from the legs
+  const bodyAt = (hm, dx = 0) => {
+    const w = clamp((hm - H0) / (H1 - H0), 0, 1), e = E2(w);
+    const th = TH1 * e, A = ankleOnToe(TOE, th);
+    const sx = hm + lerp(S0[0] - H0, S1[0] - H1, e);
+    // shoulders dip a little while the hands are split, so the hand behind stays planted
+    const lim = WY + Math.sqrt(Math.max(1, RCH * RCH - (Math.abs(sx - hm) + dx) ** 2 - (17.5 - HZ) ** 2));
+    const S = [sx, smin(lerp(S0[1], S1[1], e), lim, 0.6)];
+    const L = lerp(LF, LP, e), v = [S[0] - A[0], S[1] - A[1]], d = Math.hypot(v[0], v[1]);
+    // pelvis: |pel - A| = L and |pel - S| = sh, on the upper side (hips up)
+    const x = clamp((L * L - B.sh * B.sh + d * d) / (2 * d), 0, L), h = Math.sqrt(Math.max(0, L * L - x * x));
+    const u = [v[0] / d, v[1] / d], n = [-u[1], u[0]];
+    const pel = [A[0] + u[0] * x + n[0] * h, A[1] + u[1] * x + n[1] * h];
+    return { th, pel, S, w };
+  };
+  // hands: 7 alternating steps L R L R L R L; L moves a, 2a, 2a, a and R 2a, 2a, 2a
+  const A_ = (H1 - H0) / 6, STEPS = [["L", 1], ["R", 2], ["L", 2], ["R", 2], ["L", 2], ["R", 2], ["L", 1]];
+  const handsOut = pt => {
+    const x = { L: H0, R: H0 }, lift = { L: 0, R: 0 }, n = STEPS.length;
+    for (let k = 0; k < n; k++) {
+      const f = clamp(pt * n - k, 0, 1);
+      // the last step lands softly so the hips settle into the plank without a jolt
+      const e = k === n - 1 ? E2(f) : sstep(f);
+      const [Sd, m] = STEPS[k];
+      x[Sd] += m * A_ * e;
+      if (f > 0 && f < 1) lift[Sd] = 5 * bump(f);
+    }
+    return { x, lift };
+  };
+  const phases = [
+    { label: "Fold", dur: 1.6, effort: 0.5 },
+    { label: "Walk out", dur: 2.8, effort: 0.9 },
+    { label: "Plank", dur: 0.8, effort: 1 },
+    { label: "Walk in", dur: 2.8, effort: 0.8 },
+    { label: "Stand", dur: 1.6, effort: 0.4 },
+  ];
+  const FOLD = bodyAt(H0);
+  const STAND_PEL = [0, 91.2], STAND_TH = 0;
+  const foldTilt = Math.atan2(FOLD.S[0] - FOLD.pel[0], FOLD.S[1] - FOLD.pel[1]) / D2R;
+  const plantArm = (J, Sd, x, lift) => ({ at: [x, WY + lift, Sd === "R" ? -HZ : HZ], pole: n3(a3([-1, 0.45, 0], m3(out3(J, Sd), 0.45))), wrist: true, hand: n3(a3([1, -0.08 * lift, 0], m3(out3(J, Sd), 0.12))) });
+  const stateAt = a => {
+    if (a.i === 0 || a.i === 4) {
+      // stand <-> fold: hinge with soft knees, the hands reach down to the floor
+      const e = sstep(a.i === 0 ? a.pt : 1 - a.pt);
+      const pel = [lerp(STAND_PEL[0], FOLD.pel[0], e), lerp(STAND_PEL[1], FOLD.pel[1], e)];
+      return { mode: "fold", e, pel, tilt: lerp(STAND_TH, foldTilt, e), th: 0 };
+    }
+    const pt = a.i === 1 ? a.pt : a.i === 2 ? 1 : 1 - a.pt;
+    const hs = handsOut(pt), b = bodyAt((hs.x.L + hs.x.R) / 2, Math.abs(hs.x.L - hs.x.R) / 2);
+    return { mode: "walk", hs, pel: b.pel, tilt: Math.atan2(b.S[0] - b.pel[0], b.S[1] - b.pel[1]) / D2R, th: b.th, w: b.w };
+  };
+  wuFig({
+    id: "pushup-walkout", frame: { k: 1.04, cx: 220, cy: 176 }, shadowR: 76, shadowX: 66, floorX0: 60, floorX1: 340,
+    phases, muscles: { core: 1, frontdelt: 0.6, hams: 0.4 },
+    spec: a => {
+      const st = stateAt(a);
+      const legs = {};
+      for (const [Sd, sg] of [["R", 1], ["L", -1]]) legs[Sd] = legAt(a3(ankleOnToe(TOE, st.th), [0, 0, -sg * 9]), st.th, [1, 0.2, 0]);
+      const pel = [st.pel[0], st.pel[1], 0];
+      const head = st.mode === "fold" ? lerp(0, 40, st.e) : lerp(40, 6, sstep(st.w));
+      return { pelvis: pel, spine: tilt2(st.tilt), lat: FACE_RIGHT, head, legs,
+        arms: J => {
+          const o = {};
+          for (const Sd of ["R", "L"]) {
+            if (st.mode === "walk") { o[Sd] = plantArm(J, Sd, st.hs.x[Sd], st.hs.lift[Sd]); continue; }
+            // hanging hands drift down to their spot on the floor; planted for the last stretch
+            const ou = out3(J, Sd), sh = J["sh" + Sd];
+            const hangW = a3(sh, a3(m3(n3([0.05, -1, 0]), REACH - 4), m3(ou, 2.5)));
+            const plant = plantArm(J, Sd, H0, 0);
+            const k = sstep(seg01(st.e, 0.25, 1));
+            o[Sd] = { at: softReach(sh, mix3(hangW, plant.at, k), B.ua + B.fa, 3), pole: n3(mix3(a3([-1, -0.2, 0], m3(ou, 0.3)), plant.pole, k)), wrist: true, hand: n3(mix3([0.1, -1, 0], plant.hand, k)) };
+          }
+          return o;
+        } };
+    },
+    draw(J, a, ctx, P) {
+      const plank = a.i === 2, st = stateAt(a), near = st.mode === "walk" && st.w > 0.9;
+      return {
+        back: near ? [bodyLine(P, J, plank)] : [],
+        labels: [
+          { at: [P(J.shoulder)[0], atPageY({ k: 1.04, cy: 176 }, 50)], text: a.i === 1 || a.i === 3 ? "SLOW HANDS" : plank ? "FULL PLANK" : "", on: true, anchor: "middle" },
+          { at: [P([TOE[0], 0, 0])[0] - 4, P([0, 0, 0])[1] + 14], text: "TOES STAY PUT", on: a.i > 0 && a.i < 4, anchor: "middle" },
         ],
       };
     },

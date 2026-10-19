@@ -863,6 +863,11 @@ button { font: inherit; color: inherit; }
 }
 .warmup-duration { font-family: var(--font-mono); font-size: 11px; letter-spacing: 1.5px; color: var(--acc); margin: 6px 0 10px; text-transform: uppercase; }
 .warmup-movement { padding: 9px 0; border-top: 1px solid var(--rule); font-size: 15px; color: #C9CDD2; }
+/* v0.26: warm-up lines open their demo figure */
+.warmup-movement.tappable { display: flex; align-items: center; gap: 12px; width: 100%; background: none; border: none; border-top: 1px solid var(--rule); border-radius: 0; text-align: left; font-family: inherit; line-height: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.warmup-movement.tappable .wm-text { flex: 1; min-width: 0; }
+.warmup-movement.tappable i { flex: none; font-size: 18px; color: var(--text-muted); }
+.warmup-movement.tappable:active i, .warmup-movement.tappable:focus-visible i { color: var(--acc); }
 .warmup-done-btn, .save-set-btn, .complete-btn {
   width: 100%;
   height: 58px;
@@ -1451,3 +1456,55 @@ body.sandbox .header-date { display: none; }
 }
 .backup-nudge i { font-size: 16px; }
 .backup-nudge-go { margin-left: auto; color: var(--text-primary); }
+
+/* ===== WHAT'S NEW (v0.26) ===== */
+/* Once per release, after the splash. Only the button closes it. */
+.release-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 260;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  background: rgba(8, 9, 10, 0.92);
+  animation: release-in 0.22s ease-out;
+}
+.release-overlay.closing { opacity: 0; transition: opacity 0.18s ease-in; }
+@keyframes release-in { from { opacity: 0; } to { opacity: 1; } }
+.release-card {
+  width: 100%;
+  max-width: 420px;
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 20px 18px 18px;
+  background: var(--bg-surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+.release-tag { font-family: var(--font-mono); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--amber); }
+.release-title { margin: 6px 0 12px; font-family: var(--font-display); font-weight: 700; font-size: 30px; line-height: 1; text-transform: uppercase; color: var(--text-primary); }
+.release-list { list-style: none; margin: 0 0 18px; padding: 0; }
+.release-list li { display: flex; flex-direction: column; gap: 3px; padding: 10px 0; border-top: 1px solid var(--rule); }
+.release-list b { font-family: var(--font-display); font-weight: 600; font-size: 17px; letter-spacing: 0.3px; text-transform: uppercase; color: var(--text-primary); }
+.release-list span { font-size: 14px; line-height: 1.45; color: #C9CDD2; }
+.release-btn {
+  width: 100%;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+  background: var(--amber);
+  color: #0E0F11;
+  border: none;
+  border-radius: var(--radius);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 20px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.release-btn:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .release-overlay { animation: none; } .release-overlay.closing { transition: none; } }

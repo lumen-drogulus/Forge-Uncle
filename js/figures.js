@@ -523,18 +523,32 @@ function solve3(spec) {
   const aAt = t => (Math.abs(k) < 1e-4 ? ant : n3(s3(m3(ant, Math.cos(k * t)), m3(s, Math.sin(k * t)))));
   const C = t => (Math.abs(k) < 1e-4 ? m3(s, t * B.trunk)
     : a3(m3(s, B.trunk * Math.sin(k * t) / k), m3(ant, B.trunk * (1 - Math.cos(k * t)) / k)));
-  const T = (t, l, a) => a3(P0, a3(C(t), a3(m3(lat, l), m3(aAt(t), a))));
-  const J = { s, lat, ant, T, aAt, pelvis: P0, sTop: sAt(1), antTop: aAt(1) };
+  // spec.twist: upper-body rotation in degrees about the spine, none at the pelvis and
+  // all of it by the shoulders (thoracic rotation). Positive turns the chest toward the
+  // body's right side. The hips do not turn, so the legs stay where they are.
+  let lAt = null, aT = aAt;
+  if (spec.twist) {
+    const tw = t => spec.twist * D2R * clamp((t - 0.2) / 0.75, 0, 1);
+    lAt = t => { const f = tw(t); return a3(m3(lat, Math.cos(f)), m3(aAt(t), -Math.sin(f))); };
+    aT = t => { const f = tw(t); return a3(m3(aAt(t), Math.cos(f)), m3(lat, Math.sin(f))); };
+  }
+  const T = lAt ? (t, l, a) => a3(P0, a3(C(t), a3(m3(lAt(t), l), m3(aT(t), a))))
+    : (t, l, a) => a3(P0, a3(C(t), a3(m3(lat, l), m3(aAt(t), a))));
+  const J = { s, lat, ant, T, aAt: aT, pelvis: P0, sTop: sAt(1), antTop: aT(1) };
+  if (lAt) { J.lAt = lAt; J.latTop = lAt(1); }
   // spec.headBack: pull the head straight back (cm), as when a bar passes the face
   J.neck = a3(T(B.neck / B.trunk, 0, -1), m3(J.antTop, -(spec.headBack || 0)));
   J.headDir = tilt3(J.sTop, m3(J.antTop, -1), spec.head || 0);
   J.head = a3(J.neck, m3(J.headDir, 17));
   for (const [S, sg] of [["R", 1], ["L", -1]]) {
-    J["sh" + S] = a3(T(B.sh / B.trunk, sg * 17.5, 0), m3(J.sTop, spec.shrug || 0));
+    // spec.shAnt: shoulder joints moved toward the front of the chest (cm), for
+    // the shoulder blades sliding round the ribs (protraction +, retraction -)
+    J["sh" + S] = a3(T(B.sh / B.trunk, sg * 17.5, spec.shAnt || 0), m3(J.sTop, spec.shrug || 0));
     J["hip" + S] = T(0, sg * 8.6, 0);
   }
   J.shoulder = mix3(J.shR, J.shL, 0.5);
   const ARMS = typeof spec.arms === "function" ? spec.arms(J) : spec.arms;
+  J._armsSpec = ARMS;
   for (const [S, sg] of [["R", 1], ["L", -1]]) {
     void sg;
     const arm = ARMS[S];
@@ -584,7 +598,8 @@ function draw3D(J, cam, mus, items = [], ghost = false) {
   // head and muscles so these figures match the flat side-view ones exactly
   const sideOn = Math.abs(d3(J.lat, cam.toCam)) > 0.9;
   const farOf = S => d3(m3(J.lat, S === "R" ? 1 : -1), cam.toCam) < -0.7;
-  const face = n3(x3(J.lat, J.headDir));
+  const latTop = J.latTop || J.lat;
+  const face = n3(x3(latTop, J.headDir));
   const out3s = S => m3(J.lat, S === "R" ? 1 : -1);
   // which flank (+1/-1, in spindle terms) of the projected segment A-B faces world direction w
   const sideTo = (A, Bp, w) => { const u = nrm(sub(Bp, A)), nn = [u[1], -u[0]], q = sub(P(a3(J.pelvis, m3(w, 10))), P(J.pelvis)); return dot(nn, q) >= 0 ? 1 : -1; };
@@ -594,7 +609,7 @@ function draw3D(J, cam, mus, items = [], ghost = false) {
     const c = J.T(t, 0, ao), pts = [];
     for (let i = 0; i < 18; i++) {
       const ph = (i / 18) * Math.PI * 2;
-      pts.push(P(a3(c, a3(m3(J.lat, w * Math.cos(ph)), m3(J.aAt(t), dd * Math.sin(ph))))));
+      pts.push(P(a3(c, a3(m3(J.lAt ? J.lAt(t) : J.lat, w * Math.cos(ph)), m3(J.aAt(t), dd * Math.sin(ph))))));
     }
     return { t, c, pts };
   });
@@ -649,7 +664,7 @@ function draw3D(J, cam, mus, items = [], ghost = false) {
       return;
     }
     if (!ghost) for (const sg of [1, -1]) {
-      const e = P(a3(J.head, m3(J.lat, sg * 9.2)));
+      const e = P(a3(J.head, m3(latTop, sg * 9.2)));
       out.push({ tag: "ellipse", a: { cx: r1(e[0]), cy: r1(e[1]), rx: 1.8, ry: 2.4, class: "ear" } });
     }
     const h0 = P(a3(J.head, m3(J.headDir, -2))), h1 = P(a3(J.head, m3(J.headDir, 2)));
