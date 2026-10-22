@@ -479,12 +479,9 @@ Store.saveActiveWorkout({
   // someone who never saw the old version. Bump RELEASE.id with every release
   // that has notes; a release without notes keeps the old id and shows nothing.
   const RELEASE = {
-    id: 'v0.26',
+    id: 'v0.27',
     items: [
-      ['Warm-up demos', 'Tap any warm-up move to see it done. Lines that name two moves show both.'],
-      ['Dips and Pull-Ups', 'No more "Weighted" in the names. You can still add weight with BW+. The calisthenics version is now BW Pull-Ups.'],
-      ['Louder rest alert', 'Higher and louder, so it cuts through gym music, with three quick beeps on zero.'],
-      ['Figure fixes', 'Toes on the floor in the bird dog, pointed toes in the hollow hold, and flat arms in the glute bridge.'],
+      ['Rest alert volume', 'The alert is a little quieter now. Set it to suit you in Settings, from off to full, and tap Test to hear it.'],
     ],
   };
 
@@ -2381,7 +2378,18 @@ Store.saveActiveWorkout({
   let restSounds = [];     // booked tones, kept so they can be cancelled
   let restBuzzed = false;  // has this rest's vibration gone out yet
   let restBus = null;      // the alert's own path to the speaker
-  const REST_LEVEL = 0.5;  // peaks just under full scale after the limiter
+  let restOut = null;      // its level control, so a volume change applies at once
+  // v0.27: the level is a setting (Settings > Rest alert volume), 0 to 10.
+  // 10 is the v0.26 level, which peaks just under full scale after the
+  // limiter. Each step down is 2.5 dB; 0 is silent (the vibration stays).
+  // The default, 8, is 5 dB under v0.26 and still about 5 dB over v0.21.
+  const REST_MAX = 0.5, REST_STEP_DB = 2.5, REST_VOL_DEFAULT = 8;
+  function restVolume() {
+    const v = Store.getSettings().restVolume;
+    return typeof v === 'number' ? clampVol(v) : REST_VOL_DEFAULT;
+  }
+  function clampVol(v) { return Math.max(0, Math.min(10, Math.round(v))); }
+  function restGain(v) { return v <= 0 ? 0 : REST_MAX * Math.pow(10, -(10 - v) * REST_STEP_DB / 20); }
 
   function cancelRestSounds() {
     restSounds.forEach(o => { try { o.stop(); } catch (e) {} });
@@ -2398,7 +2406,8 @@ Store.saveActiveWorkout({
     lp.type = 'lowpass';
     lp.frequency.value = 6000;
     const out = ctx.createGain();
-    out.gain.value = REST_LEVEL;
+    out.gain.value = restGain(restVolume());
+    restOut = out;
     const lim = ctx.createDynamicsCompressor();  // safety net against clipping
     lim.threshold.value = -3;
     lim.knee.value = 0;
@@ -2430,6 +2439,7 @@ Store.saveActiveWorkout({
       const ctx = getAudio();   // the one shared audio context
       if (!ctx) return;
       const bus = getRestBus(ctx);
+      if (restVolume() === 0) return;   // silent: the vibration still goes out
       const now = ctx.currentTime;
       const secLeft = (state.timerEndAt - Date.now()) / 1000;
       // Pips: 2000 Hz, short.
@@ -3211,6 +3221,20 @@ Store.saveActiveWorkout({
             Worked out from your log. To correct it, tap the day on the calendar and fix what you actually did.
           </div>
         </div>
+        <div class="warmup-card settings-field">
+          <div class="settings-row">
+            <label for="settings-restvol">Rest alert volume</label>
+            <span class="settings-val" id="settings-restvol-val">${volLabel(restVolume())}</span>
+          </div>
+          <div class="settings-row">
+            <input type="range" class="vol-range" id="settings-restvol" min="0" max="10" step="1" value="${restVolume()}"
+              oninput="FORGE.setRestVolume(this.value)" onchange="FORGE.testRestAlert()" aria-describedby="settings-restvol-help">
+            <button class="action-btn vol-test" onclick="FORGE.testRestAlert()" aria-label="Play the rest alert"><i class="ti ti-volume"></i> Test</button>
+          </div>
+          <div class="settings-help" id="settings-restvol-help">
+            Saves as you slide it. 0 turns the sound off; the phone still vibrates.
+          </div>
+        </div>
         <button class="start-btn" onclick="FORGE.saveSettings()">Save settings</button>
         <div class="section-header" style="margin-top:10px;">Data</div>
         <button class="action-btn" onclick="FORGE.exportData()">
@@ -3229,6 +3253,29 @@ Store.saveActiveWorkout({
         </button>
       </div>
     `;
+  }
+
+  // v0.27: rest alert volume. Saved straight away (no Save button needed),
+  // and applied to the live alert path so a rest already counting down uses it.
+  function volLabel(v) { return v <= 0 ? 'Off' : v + ' / 10'; }
+  function setRestVolume(raw) {
+    const v = clampVol(parseFloat(raw));
+    const settings = Store.getSettings();
+    settings.restVolume = v;
+    Store.saveSettings(settings);
+    const lab = document.getElementById('settings-restvol-val');
+    if (lab) lab.textContent = volLabel(v);
+    if (restOut) restOut.gain.value = restGain(v);
+  }
+  // The zero beeps at the current level, so the slider can be set by ear.
+  function testRestAlert() {
+    try {
+      const ctx = getAudio();
+      if (!ctx || restVolume() === 0) return;
+      if (ctx.state === 'suspended') ctx.resume();
+      const bus = getRestBus(ctx), t = ctx.currentTime + 0.05;
+      [0, 0.2, 0.4].forEach(d => restBeep(ctx, bus, t + d, 3000, 0.14));
+    } catch (e) {}
   }
 
   function saveSettings() {
@@ -3493,6 +3540,8 @@ Store.saveActiveWorkout({
     toggleStopwatch,
     setBWMode,
     saveSettings,
+    setRestVolume,
+    testRestAlert,
     exportData,
     clearData,
     clearToday,

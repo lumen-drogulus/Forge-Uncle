@@ -1201,6 +1201,12 @@ button { font: inherit; color: inherit; }
   line-height: 1.1;
 }
 .settings-help { font-size: 13px; color: var(--text-secondary); }
+/* v0.27: rest alert volume */
+.settings-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.settings-val { font-family: var(--font-mono); font-size: 13px; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.vol-range { flex: 1; min-width: 0; height: 32px; margin: 0; accent-color: var(--amber); cursor: pointer; }
+.vol-range:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.settings-row .vol-test { width: auto; flex: none; height: 36px; padding: 0 14px; }
 .settings-list .start-btn { flex: none; justify-content: center; }
 .action-btn.warn { color: var(--amber); }
 .action-btn.danger { color: var(--red); border-color: #4A2626; }
