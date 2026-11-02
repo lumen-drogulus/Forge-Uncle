@@ -1580,12 +1580,17 @@ Store.saveActiveWorkout({
     const isBWPlus = ex.weightMode === 'bw-plus';
     const isBWMinus = ex.weightMode === 'bw-minus';
     const hasBWModes = isBW || isBWPlus || isBWMinus;
+    // First set's prefill from last session: the number typed then (assist or
+    // added), not total load minus today's bodyweight, so a lighter you still
+    // opens on BW-60. Falls back to the old math when the toggle has changed.
+    const prevEnteredOf = (p) => (p.add !== null && ((isBWMinus && p.add < 0) || (isBWPlus && p.add >= 0)))
+      ? Math.abs(p.add) : enteredOf({ weight: p.weight }, ex);
     const editingSet = state.editingSetIndex !== null ? log.sets[state.editingSetIndex] : null;
     const lastWeight = editingSet
       ? enteredOf(editingSet, ex)
       : (log.sets.length > 0
           ? enteredOf(log.sets[log.sets.length - 1], ex)
-          : (prevData ? enteredOf({ weight: prevData.weight }, ex) : ''));
+          : (prevData ? prevEnteredOf(prevData) : ''));
     const unit = state.weightUnit === 'kg' ? 'kg' : 'lb';
     const paired = isPaired(ex);
     const loadLabel = isBWPlus ? `Added · ${unit}` : isBWMinus ? `Assist · ${unit}` : paired ? `Per hand · ${unit}` : `Load · ${unit}`;
@@ -1661,7 +1666,7 @@ Store.saveActiveWorkout({
         ` : `
         <div class="stat-card">
           <div class="stat-label">Last time</div>
-          <div class="stat-value">${prevData ? (paired ? '2\u00d7' + fmtLoad(prevData.weight) : prevData.weight) + ' ' + unit : '—'}</div>
+          <div class="stat-value">${prevData ? (prevData.label || (paired ? '2\u00d7' + fmtLoad(prevData.weight) : prevData.weight) + ' ' + unit) : '—'}</div>
           <div class="stat-detail">${prevData ? prevData.detail : 'No data'}</div>
         </div>
         <div class="stat-card">
@@ -2344,8 +2349,17 @@ Store.saveActiveWorkout({
     if (!exLog || exLog.sets.length === 0) return null;
     const lastSet = exLog.sets[exLog.sets.length - 1];
     const maxWeight = Math.max(...exLog.sets.map(set => set.weight));
+    // On BW+ / BW- moves, weight is total load (bodyweight plus or minus the
+    // number typed), so a BW-60 set at 185 used to read "125 lb". Read the
+    // heaviest set as it was logged instead (v0.29.1).
+    const top = exLog.sets.find(set => set.weight === maxWeight);
+    const x = top ? readSet(top) : null;
+    const add = x && x.form === 'signed' ? x.add : null;
     return {
       weight: maxWeight,
+      add: add,
+      // Plain bodyweight sets store bodyweight as weight; they read "BW", not "185 lb".
+      label: add !== null ? (add < 0 ? 'BW-' + fmtLoad(-add) : 'BW+' + fmtLoad(add)) : (x && x.form === 'bw' ? 'BW' : null),
       detail: `${exLog.sets.length}×${lastSet.repsDisplay || lastSet.reps}`
     };
   }
