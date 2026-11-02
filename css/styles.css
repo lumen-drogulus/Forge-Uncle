@@ -1184,6 +1184,119 @@ button { font: inherit; color: inherit; }
 .pr-item-value { font-family: var(--font-mono); font-size: 16px; font-weight: 700; color: var(--amber); white-space: nowrap; text-align: right; }
 .section-block { display: flex; flex-direction: column; }
 
+/* v0.29: each record row is a button into its history sheet */
+.pr-tap {
+  width: 100%;
+  gap: 10px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--rule);
+  color: var(--text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.pr-tap:active { background: var(--bg-card); }
+.pr-tap:focus-visible { outline: 2px solid var(--text-primary); outline-offset: -2px; }
+.pr-item-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.pr-tap .pr-item-name { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pr-tap .pr-item-detail { display: block; }
+.pr-spark { flex: 0 0 48px; width: 48px; height: 20px; display: block; }
+.pr-item-go { flex: 0 0 auto; font-size: 14px; color: var(--text-muted); margin-right: -2px; }
+
+/* ===== EXERCISE HISTORY SHEET (v0.29) ===== */
+/* Reuses the info panel. Neutral controls: the dots carry the day colour. */
+.hist { display: flex; flex-direction: column; gap: 14px; }
+.hist-head .info-panel-title { margin-bottom: 4px; }
+.hist-record { font-family: var(--font-mono); font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-secondary); }
+.hist-record b { color: var(--amber); font-weight: 700; text-transform: none; }
+.hist-controls { display: flex; gap: 8px; }
+.hist-seg { flex: 1 1 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); border: 1px solid var(--border); border-radius: var(--radius); }
+.hist-range { flex: 0 0 150px; }
+.hist-seg-btn {
+  height: 44px;
+  background: none;
+  border: none;
+  border-right: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.hist-seg-btn:last-child { border-right: none; }
+.hist-seg-btn.active { background: var(--bg-elevated); color: var(--text-primary); box-shadow: inset 0 -2px 0 var(--text-primary); }
+.hist-readout { display: flex; flex-direction: column; gap: 3px; }
+.hist-big { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.hist-big span { font-family: var(--font-mono); font-size: 26px; font-weight: 700; line-height: 1.1; color: var(--text-primary); }
+.hist-big small { font-family: var(--font-mono); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-secondary); }
+.hist-meta { font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); }
+.hist-delta { font-family: var(--font-mono); font-size: 11px; font-weight: 500; color: var(--text-secondary); }
+.hist-delta.up { color: var(--green); }
+.hist-delta.down { color: var(--red); }
+.hist-svg { display: block; overflow: visible; }
+.hist-grid { stroke: var(--rule); stroke-width: 1; }
+.hist-grid.bw { stroke: var(--text-muted); stroke-dasharray: 4 3; }
+.hist-tick { font-family: var(--font-mono); font-size: 9px; fill: var(--gray); }
+.hist-tick.bw { fill: var(--text-primary); }
+.hist-month { font-family: var(--font-mono); font-size: 9px; letter-spacing: 1px; fill: var(--gray); }
+.hist-guide { stroke: var(--border-light); stroke-width: 1; stroke-dasharray: 3 3; }
+.hist-line { fill: none; stroke: var(--text-muted); stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
+.hist-rep { font-family: var(--font-mono); font-size: 9px; fill: var(--text-secondary); pointer-events: none; }
+.hist-pt { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.hist-empty {
+  height: 120px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  text-align: center;
+  font-family: var(--font-mono);
+}
+.hist-empty div { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-primary); }
+.hist-empty span { font-size: 10px; color: var(--text-secondary); }
+.hist-note { font-size: 12px; line-height: 1.45; color: var(--text-secondary); }
+.hist-sets { display: flex; flex-direction: column; gap: 6px; }
+.hist-label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-secondary); }
+.hist-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.hist-pill { height: 28px; padding: 0 9px; display: inline-flex; align-items: center; border: 1px solid var(--border); border-radius: var(--radius); font-family: var(--font-mono); font-size: 11px; color: var(--text-secondary); }
+.hist-pill.top { border-color: var(--text-muted); color: var(--text-primary); }
+.hist-list { display: flex; flex-direction: column; }
+.hist-list-head { display: flex; justify-content: space-between; }
+.hist-row {
+  height: 44px;
+  display: grid;
+  grid-template-columns: 58px 30px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-align: left;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.hist-row.active { background: var(--bg-elevated); }
+.hist-row-date { color: var(--text-secondary); }
+.hist-row.active .hist-row-date { color: var(--text-primary); }
+.hist-row-code { font-size: 10px; font-weight: 700; }
+.hist-row-top { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hist-row-vol { color: var(--text-secondary); text-align: right; }
+
+/* v0.29: the Trend card on the exercise screen opens the history sheet */
+.stat-tap { background: none; border: none; border-right: none; text-align: left; color: inherit; font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.stat-tap:active { background: var(--bg-card); }
+.stat-tap .stat-label { display: flex; align-items: center; justify-content: space-between; padding-right: 4px; }
+.stat-tap .stat-label .ti { font-size: 12px; }
+
 /* ===== SETTINGS ===== */
 .settings-list { display: flex; flex-direction: column; gap: 10px; }
 .settings-field { display: flex; flex-direction: column; gap: 6px; }
@@ -1496,6 +1609,9 @@ body.sandbox .header-date { display: none; }
 .release-list li { display: flex; flex-direction: column; gap: 3px; padding: 10px 0; border-top: 1px solid var(--rule); }
 .release-list b { font-family: var(--font-display); font-weight: 600; font-size: 17px; letter-spacing: 0.3px; text-transform: uppercase; color: var(--text-primary); }
 .release-list span { font-size: 14px; line-height: 1.45; color: #C9CDD2; }
+/* v0.29: a card covering skipped releases labels each one */
+.release-ver { margin: 4px 0 0; padding-bottom: 6px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-secondary); }
+.release-ver + .release-list { margin-bottom: 14px; }
 .release-btn {
   width: 100%;
   height: 52px;

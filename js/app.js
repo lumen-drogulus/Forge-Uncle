@@ -474,27 +474,67 @@ Store.saveActiveWorkout({
     }, 2000);
   }
 
-  // ===== WHAT'S NEW (v0.26) =====
+  // ===== WHAT'S NEW (v0.26, history since v0.29) =====
   // Shown once per release, as the splash fades, to anyone who already has
   // data. Only its button closes it (no backdrop tap), so a stray thumb can't
   // skip it. A fresh install stamps the release silently: nothing is "new" to
-  // someone who never saw the old version. Bump RELEASE.id with every release
-  // that has notes; a release without notes keeps the old id and shows nothing.
-  const RELEASE = {
-    id: 'v0.28',
-    items: [
+  // someone who never saw the old version.
+  // RELEASES is newest first. A phone that skipped updates sees every release
+  // since the one it last acknowledged (up to RELEASE_SHOW_MAX), so a note that
+  // changes how you log, like v0.28's one-dumbbell rule, can't be lost by
+  // jumping a version. Add a new entry at the top for every release that has
+  // notes; a release without notes adds nothing and shows nothing.
+  const RELEASES = [
+    { id: 'v0.29', items: [
+      ['Exercise history', 'Tap any record on the PRs tab to see that move over time: top set or volume, the last 3 months, 6 months or all of it. Tap a point for that day’s sets.'],
+      ['Trend box', 'During a workout, Trend now shows the change in pounds, reps or seconds over your last three sessions of that move, from any workout day. Tap it for the full history.'],
+    ] },
+    { id: 'v0.28', items: [
       ['Dumbbells: one hand', 'On dumbbell moves, enter the weight of one dumbbell. The total for both hands shows right under it.'],
       ['10 lb bar', 'The plate calculator has a 10 lb bar option.'],
-    ],
-  };
-  // Shown only on a copy whose earlier dumbbell entries were totals and just got halved.
+    ] },
+    { id: 'v0.27', items: [
+      ['Rest alert volume', 'The alert is a little quieter now. Set it to suit you in Settings, from off to full, and tap Test to hear it.'],
+    ] },
+    { id: 'v0.26', items: [
+      ['Warm-up demos', 'Tap any warm-up move to see it done. Lines that name two moves show both.'],
+      ['Dips and Pull-Ups', 'No more "Weighted" in the names. You can still add weight with BW+. The calisthenics version is now BW Pull-Ups.'],
+      ['Louder rest alert', 'Higher and louder, so it cuts through gym music, with three quick beeps on zero.'],
+    ] },
+  ];
+  const RELEASE = RELEASES[0];
+  const RELEASE_SHOW_MAX = 3;
+  // Shown only on a copy whose earlier dumbbell entries were totals and just got
+  // halved. It sits under v0.28, the release that explains one-dumbbell entry.
   const PAIR_FIX_NOTE = ['Your dumbbell history', 'Your earlier dumbbell entries were both hands combined, so they have been halved to one dumbbell. Records and last-time numbers now match what you enter.'];
+  const PAIR_FIX_RELEASE = 'v0.28';
+
+  // 'v0.28' -> 28, 'v1.2' -> 1002. Anything else -> -1 (unknown stamp).
+  function releaseNum(id) {
+    const m = /^v(\d+)\.(\d+)$/.exec(String(id || ''));
+    return m ? Number(m[1]) * 1000 + Number(m[2]) : -1;
+  }
+
+  // The releases this phone hasn't acknowledged, newest first. No stamp, or one
+  // we can't read, means the phone predates the card: show only the newest.
+  function unseenReleases(seen) {
+    const n = releaseNum(seen);
+    if (n < 0) return [RELEASE];
+    return RELEASES.filter(r => releaseNum(r.id) > n).slice(0, RELEASE_SHOW_MAX);
+  }
 
   function maybeShowRelease() {
     if (Store.get('seenRelease') === RELEASE.id) return;
     const hasData = Object.keys(Store.getLogs()).length > 0 || Store.get('settings') !== null;
     if (!hasData) { Store.set('seenRelease', RELEASE.id); return; }
     if (document.getElementById('release-overlay')) return;
+    const groups = unseenReleases(Store.get('seenRelease'));
+    if (!groups.length) return;   // stamped with a newer release than this code knows
+    const fixAt = groups.some(g => g.id === PAIR_FIX_RELEASE) ? PAIR_FIX_RELEASE : groups[0].id;
+    const listFor = g => `
+        <ul class="release-list">
+          ${g.items.concat(state.pairFixed && g.id === fixAt ? [PAIR_FIX_NOTE] : []).map(([h, t]) => `<li><b>${h}</b><span>${t}</span></li>`).join('')}
+        </ul>`;
     const el = document.createElement('div');
     el.className = 'release-overlay';
     el.id = 'release-overlay';
@@ -505,9 +545,8 @@ Store.saveActiveWorkout({
       <div class="release-card">
         <div class="release-tag">Updated · ${RELEASE.id}</div>
         <h2 class="release-title" id="release-title">What's new</h2>
-        <ul class="release-list">
-          ${RELEASE.items.concat(state.pairFixed ? [PAIR_FIX_NOTE] : []).map(([h, t]) => `<li><b>${h}</b><span>${t}</span></li>`).join('')}
-        </ul>
+        ${groups.length === 1 ? listFor(groups[0]) : groups.map(g => `
+        <div class="release-ver">${g.id}</div>${listFor(g)}`).join('')}
         <button class="release-btn" id="release-ack" onclick="FORGE.ackRelease()">Got it <i class="ti ti-check"></i></button>
       </div>`;
     document.body.appendChild(el);
@@ -1505,7 +1544,8 @@ Store.saveActiveWorkout({
     // Get previous data for this exercise
     const prevData = getPreviousExerciseData(ex.id, day.id);
     const prData = getPR(ex.id);
-    const trendData = getTrend(ex.id, day.id);
+    // One history across every workout day (v0.29), the same one the history sheet reads.
+    const trendData = historyTrend(ex.id);
 
     // Determine number of sets (for 'to failure' exercises, use the defined sets count)
     const numSets = ex.sets;
@@ -1556,14 +1596,18 @@ Store.saveActiveWorkout({
     const lastSeconds = isTimeMode ? (editingSet ? editingSet.reps : (log.sets.length > 0 ? log.sets[log.sets.length - 1].reps : 30)) : 0;
     const allSetsDone = currentSet >= numSets;
 
-    const trendCell = (t) => `
-        <div class="stat-card">
-          <div class="stat-label">Trend</div>
-          <div class="stat-value ${t ? (t.direction === 'up' ? 'trend-up' : t.direction === 'down' ? 'trend-down' : '') : ''}">
-            ${t ? `${t.direction === 'up' ? '↑' : t.direction === 'down' ? '↓' : '→'} ${t.percent}` : '—'}
-          </div>
-          <div class="stat-detail">${t ? t.detail : 'Need 3+ sessions'}</div>
-        </div>`;
+    // Trend reads the shared history; once a move has any logged session the
+    // card is a button that opens its history sheet (v0.29).
+    const trendCell = (tr) => {
+      const t = tr.t;
+      const inner = `
+          <div class="stat-label">Trend${tr.has ? ' <i class="ti ti-chevron-right"></i>' : ''}</div>
+          <div class="stat-value ${t ? (t.direction === 'up' ? 'trend-up' : t.direction === 'down' ? 'trend-down' : '') : ''}">${t ? t.value : '—'}</div>
+          <div class="stat-detail">${t ? t.detail : (tr.has ? 'Need 2+ sessions' : 'No data')}</div>`;
+      return tr.has
+        ? `<button class="stat-card stat-tap" onclick="FORGE.openHistory('${ex.id}')" aria-label="Trend. Open ${ex.name} history">${inner}</button>`
+        : `<div class="stat-card">${inner}</div>`;
+    };
 
     const nextIdx = state.currentExerciseIndex + 1;
     const nextEx = nextIdx < plan.length ? plan[nextIdx] : null;
@@ -1613,7 +1657,7 @@ Store.saveActiveWorkout({
           <div class="stat-value pr">${(() => { const tp = getTimePR(ex.id); return tp ? tp.display : '—'; })()}</div>
           <div class="stat-detail">${(() => { const tp = getTimePR(ex.id); return tp ? tp.detail : 'No data'; })()}</div>
         </div>
-        ${trendCell(getTimeTrend(ex.id, day.id))}
+        ${trendCell(trendData)}
         ` : `
         <div class="stat-card">
           <div class="stat-label">Last time</div>
@@ -2306,31 +2350,6 @@ Store.saveActiveWorkout({
     };
   }
 
-  function getTrend(exerciseId, dayId) {
-    const logs = Store.getLogs();
-    if (!logs[dayId] || logs[dayId].length < 3) return null;
-    const recent = logs[dayId].slice(-3);
-    const e1rms = recent.map(log => {
-      const exLog = log.exercises.find(e => e.id === exerciseId);
-      if (!exLog || exLog.sets.length === 0) return 0;
-      const bestSet = exLog.sets.reduce((best, s) => {
-        const e1 = FORGE_DATA.calculateE1RM(s.weight, s.reps || 0);
-        return e1 > best ? e1 : best;
-      }, 0);
-      return bestSet;
-    }).filter(v => v > 0);
-
-    if (e1rms.length < 2) return null;
-    const first = e1rms[0];
-    const last = e1rms[e1rms.length - 1];
-    const change = ((last - first) / first * 100);
-    return {
-      direction: change > 1 ? 'up' : change < -1 ? 'down' : 'flat',
-      percent: `${Math.abs(Math.round(change))}%`,
-      detail: `${e1rms.length} sessions`
-    };
-  }
-
   // ===== TIME-BASED EXERCISE HELPERS =====
   function getTimePreviousData(exerciseId, dayId) {
     const logs = Store.getLogs();
@@ -2355,26 +2374,383 @@ Store.saveActiveWorkout({
     return null;
   }
 
-  function getTimeTrend(exerciseId, dayId) {
-    const logs = Store.getLogs();
-    if (!logs[dayId] || logs[dayId].length < 3) return null;
-    const recent = logs[dayId].slice(-3);
-    const times = recent.map(log => {
-      const exLog = log.exercises.find(e => e.id === exerciseId);
-      if (!exLog || exLog.sets.length === 0) return 0;
-      return Math.max(...exLog.sets.map(s => parseInt(s.reps) || 0));
-    }).filter(v => v > 0);
+  // ===== EXERCISE HISTORY (v0.29) =====
+  // One history per exercise id, swept across every workout day's logs, so a
+  // move that lives on several days (back extension sits on four) reads as one
+  // line. The history sheet, the PR-row sparklines and the Trend card all read
+  // exerciseHistory(), so they can never disagree with each other.
+  //
+  // What gets plotted follows what the record measures, not e1RM: most of the
+  // program is prescribed above 12 reps, where e1rmOf() returns nothing.
+  //   load   free weight and paired dumbbells: top set load (per hand on pairs)
+  //   added  BW+ / BW- moves: the bodyweight scale from v0.19 (BW-60 is -60)
+  //   reps   pure bodyweight moves: best reps
+  //   time   timed holds: best seconds
 
-    if (times.length < 2) return null;
-    const first = times[0];
-    const last = times[times.length - 1];
-    const change = ((last - first) / first * 100);
-    return {
-      direction: change > 5 ? 'up' : change < -5 ? 'down' : 'flat',
-      percent: `${Math.abs(Math.round(change))}%`,
-      detail: `${times.length} sessions`
-    };
+  const HIST_TONE = { power: 'var(--amber)', hypertrophy: 'var(--cyan)', calisthenics: 'var(--green)', core: 'var(--violet)' };
+  const HIST_MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const HIST_MIN_POINTS = 3;
+
+  function exDef(id) {
+    for (const wid of Object.keys(FORGE_DATA.workouts)) {
+      const ex = (FORGE_DATA.workouts[wid].exercises || []).find(e => e.id === id);
+      if (ex) return ex;
+    }
+    return null;
   }
+
+  // One logged set, read the way it was shown when it was logged. On sets from
+  // before v0.15 the display text is the only record of the mode.
+  function readSet(set) {
+    const d = String(set.display || '');
+    const reps = parseInt(set.reps) || 0;
+    const w = Number(set.weight) || 0;
+    const label = d || `${fmtLoad(w)} × ${reps}`;
+    let m;
+    if ((m = /^BW · (\d+)s$/.exec(d))) return { form: 'time', secs: parseInt(m[1]) || reps, reps: reps, w: 0, label: label };
+    if ((m = /^BW([+-])(\d+(?:\.\d+)?)\s/.exec(d))) return { form: 'signed', add: (m[1] === '-' ? -1 : 1) * parseFloat(m[2]), reps: reps, w: w, label: label };
+    if (/^BW ×/.test(d)) return { form: 'bw', add: 0, reps: reps, w: w, label: label };
+    if ((m = /^2×(\d+(?:\.\d+)?)\s/.exec(d))) return { form: 'pair', load: parseFloat(m[1]), reps: reps, w: w, label: label };
+    return { form: 'free', load: typeof set.entered === 'number' ? set.entered : w, reps: reps, w: w, label: label };
+  }
+
+  function historyKind(ex, raw) {
+    const any = form => raw.some(s => s.sets.some(x => x.form === form));
+    if ((ex && ex.trackMode === 'time') || (!ex && any('time'))) return 'time';
+    if (any('signed') || (ex && (ex.weightMode === 'bw-plus' || ex.weightMode === 'bw-minus'))) return 'added';
+    if ((ex && ex.weightMode === 'bw') || (!ex && any('bw') && !any('free') && !any('pair'))) return 'reps';
+    return 'load';
+  }
+
+  // The number a set ranks by, or null when the set doesn't belong on this
+  // scale (a Free-mode set inside a BW- history, say).
+  function histScore(kind, x) {
+    if (kind === 'time') return x.form === 'time' ? x.secs : null;
+    if (kind === 'reps') return x.reps;
+    if (kind === 'added') return (x.form === 'signed' || x.form === 'bw') ? x.add : null;
+    if (x.form === 'free' || x.form === 'pair') return x.load;
+    return x.form === 'bw' ? 0 : null;
+  }
+
+  // Volume: load moved for weighted work (both hands on pairs; bodyweight minus
+  // assist on BW- moves, which is why it sags when bodyweight drops), total
+  // reps for bodyweight moves, total seconds for holds.
+  function histVolume(kind, sets) {
+    return sets.reduce((sum, x) => {
+      if (kind === 'time') return sum + (x.secs || 0);
+      if (kind === 'reps') return sum + x.reps;
+      if (kind === 'added') return sum + x.w * x.reps;
+      return sum + (x.form === 'pair' ? 2 * x.load : (x.load || 0)) * x.reps;
+    }, 0);
+  }
+
+  function histBetter(a, b) {
+    return a.score > b.score || (a.score === b.score && a.reps > b.reps);
+  }
+
+  function exerciseHistory(id) {
+    const ex = exDef(id);
+    const logs = Store.getLogs();
+    const raw = [];
+    let name = ex ? ex.name : id;
+    Object.keys(logs).forEach(dayId => {
+      [].concat(logs[dayId] || []).forEach(entry => {
+        const exLog = (entry.exercises || []).find(e => e && e.id === id);
+        if (!exLog || !Array.isArray(exLog.sets)) return;
+        const sets = exLog.sets.map(readSet).filter(x => x.reps > 0);
+        if (!sets.length) return;
+        const iso = entry.completedAt || entry.date;
+        const t = Date.parse(iso);
+        if (!isFinite(t)) return;
+        if (!ex && exLog.name) name = exLog.name;
+        raw.push({ t: t, iso: iso, dayId: entry.dayId || dayId, sets: sets });
+      });
+    });
+    raw.sort((a, b) => a.t - b.t);
+
+    const kind = historyKind(ex, raw);
+    let best = null;
+    const sessions = [];
+    raw.forEach(s => {
+      let top = null;
+      s.sets.forEach(x => {
+        const score = histScore(kind, x);
+        if (score === null) return;
+        const cand = { score: score, reps: x.reps, x: x };
+        if (!top || histBetter(cand, top)) top = cand;
+      });
+      if (!top) return;
+      const isPR = best !== null && histBetter(top, best);
+      if (best === null || histBetter(top, best)) best = top;
+      const day = dayById(s.dayId);
+      sessions.push(Object.assign(s, {
+        top: top, isPR: isPR, vol: Math.round(histVolume(kind, s.sets)),
+        tone: HIST_TONE[toneClass(day || { type: 'power' })],
+        code: codeFor(s.dayId), dayName: day ? day.name : s.dayId
+      }));
+    });
+    const paired = !!(ex && ex.pair) || sessions.some(s => s.sets.some(x => x.form === 'pair'));
+    return { id: id, ex: ex, name: name, kind: kind, paired: paired, sessions: sessions };
+  }
+
+  function histTopLabel(kind, s) {
+    return kind === 'time' ? s.top.x.secs + 's' : s.top.x.label;
+  }
+
+  function histDate(t) {
+    const d = new Date(t);
+    return `${HIST_MON[d.getMonth()]} ${d.getDate()}`;
+  }
+
+  function histVolLabel(kind, v) {
+    if (kind === 'time') return v + 's';
+    if (kind === 'reps') return String(v);
+    return v.toLocaleString('en-US');
+  }
+
+  // Change from session a to session b. long reads in the sheet, short fits
+  // the Trend card. dir is up / down / flat.
+  function histDelta(h, metric, a, b) {
+    const since = ' since ' + histDate(a.t);
+    const out = (dir, long, short) => ({ dir: dir, long: long, short: short });
+    if (metric === 'volume') {
+      if (!a.vol) return out('flat', 'Volume' + since, '→ level');
+      const pct = Math.round((b.vol - a.vol) / a.vol * 100);
+      if (!pct) return out('flat', 'Volume level' + since, '→ level');
+      return out(pct > 0 ? 'up' : 'down', `${pct > 0 ? '↑ +' : '↓ −'}${Math.abs(pct)}% volume${since}`, `${pct > 0 ? '↑' : '↓'} ${Math.abs(pct)}%`);
+    }
+    const diff = Math.round((b.top.score - a.top.score) * 10) / 10;
+    const dr = b.top.reps - a.top.reps;
+    const up = diff > 0 ? '↑' : '↓';
+    const amt = fmtLoad(Math.abs(diff));
+    if (h.kind === 'time') {
+      if (!diff) return out('flat', 'Level' + since, '→ level');
+      return out(diff > 0 ? 'up' : 'down', `${up} ${diff > 0 ? '+' : '−'}${amt}s longest hold${since}`, `${up} ${amt}s`);
+    }
+    if (h.kind === 'reps') {
+      if (!diff) return out('flat', 'Level' + since, '→ level');
+      return out(diff > 0 ? 'up' : 'down', `${up} ${diff > 0 ? '+' : '−'}${amt} reps best set${since}`, `${up} ${amt} reps`);
+    }
+    if (diff) {
+      let long;
+      if (h.kind === 'added') {
+        const s0 = a.top.score, s1 = b.top.score;
+        if (s0 < 0 && s1 <= 0) long = `${amt} lb ${diff > 0 ? 'less' : 'more'} assist`;
+        else if (s0 >= 0 && s1 >= 0) long = `${amt} lb ${diff > 0 ? 'more' : 'less'} added`;
+        else long = `${amt} lb, ${diff > 0 ? 'past' : 'back under'} bodyweight`;
+        long = `${up} ${long}${since}`;
+      } else {
+        long = `${up} ${diff > 0 ? '+' : '−'}${amt} lb top set${h.paired ? ' per hand' : ''}${since}`;
+      }
+      return out(diff > 0 ? 'up' : 'down', long, `${up} ${amt} lb`);
+    }
+    if (!dr) return out('flat', 'Level' + since, '→ level');
+    const ru = dr > 0 ? '↑' : '↓';
+    return out(dr > 0 ? 'up' : 'down', `${ru} ${dr > 0 ? '+' : '−'}${Math.abs(dr)} reps at the same load${since}`, `${ru} ${Math.abs(dr)} reps`);
+  }
+
+  // The Trend card: change over the last three sessions of this move, from any
+  // workout day. Replaces the old per-day e1RM percentage (v0.29).
+  function historyTrend(exerciseId) {
+    const h = exerciseHistory(exerciseId);
+    const recent = h.sessions.slice(-3);
+    if (recent.length < 2) return { has: h.sessions.length > 0, t: null };
+    const d = histDelta(h, 'load', recent[0], recent[recent.length - 1]);
+    return { has: true, t: { direction: d.dir, value: d.short, detail: `${recent.length} sessions` } };
+  }
+
+  // Tiny trend line for a PR row: the last 8 sessions' top values.
+  function histSparkline(h) {
+    const vals = h.sessions.slice(-8).map(s => s.top.score);
+    if (vals.length < 2) return '<span class="pr-spark" aria-hidden="true"></span>';
+    const lo = Math.min(...vals), hi = Math.max(...vals), span = (hi - lo) || 1, n = vals.length;
+    const pts = vals.map((v, i) => [Math.round((2 + i * 44 / (n - 1)) * 10) / 10, Math.round((17 - (v - lo) / span * 14) * 10) / 10]);
+    const last = pts[n - 1];
+    return `<svg class="pr-spark" width="48" height="20" viewBox="0 0 48 20" aria-hidden="true">
+      <polyline points="${pts.map(p => p.join(',')).join(' ')}" fill="none" stroke="var(--text-faint)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+      <circle cx="${last[0]}" cy="${last[1]}" r="2" fill="var(--text-secondary)"/></svg>`;
+  }
+
+  function histScale(lo, hi) {
+    const raw = (hi - lo) / 5;
+    const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= raw - 1e-9);
+    return { lo: Math.floor(lo / step + 1e-9) * step, hi: Math.ceil(hi / step - 1e-9) * step, step: step };
+  }
+
+  // The chart, hand-drawn in SVG: no library, so it works offline in the gym.
+  // x is by date, not session number, so a two-week layoff looks like one.
+  function histChart(h, vis, metric, x0, sel, W) {
+    const H = 196, PL = 40, PR = W - 12, PT = 20, PB = H - 28;
+    const valOf = s => metric === 'volume' ? s.vol : s.top.score;
+    const vals = vis.map(valOf);
+    let lo = Math.min(...vals), hi = Math.max(...vals);
+    const fromZero = metric === 'volume';
+    if (fromZero) lo = 0;
+    else if (h.kind === 'added') { lo = Math.min(lo, 0); hi = Math.max(hi, 0); }
+    else { const pad = (hi - lo) || Math.max(Math.abs(hi) * 0.2, 4); lo = Math.max(0, lo - pad * 0.25); hi = hi + pad * 0.15; }
+    if (hi === lo) { if (fromZero || lo === 0) hi = lo + 10; else { const p = Math.abs(lo) * 0.1 || 5; lo -= p; hi += p; } }
+    const sc = histScale(lo, hi);
+    const x1 = Date.now();
+    const xOf = t => Math.round((PL + 10 + (t - x0) / Math.max(1, x1 - x0) * (PR - PL - 20)) * 10) / 10;
+    const yOf = v => Math.round((PB - (v - sc.lo) / (sc.hi - sc.lo) * (PB - PT)) * 10) / 10;
+
+    let grid = '';
+    for (let v = sc.lo; v <= sc.hi + 1e-9; v += sc.step) {
+      const r = Math.round(v * 100) / 100;
+      const bw = h.kind === 'added' && metric !== 'volume' && r === 0;
+      const label = metric === 'volume'
+        ? (r >= 1000 ? fmtLoad(r / 1000) + 'k' : String(r))
+        : (bw ? 'BW' : fmtLoad(r));
+      const y = yOf(r);
+      grid += `<line class="hist-grid${bw ? ' bw' : ''}" x1="${PL - 2}" x2="${W}" y1="${y}" y2="${y}"/>` +
+              `<text class="hist-tick${bw ? ' bw' : ''}" x="${PL - 8}" y="${y + 3}" text-anchor="end">${label}</text>`;
+    }
+
+    let months = '';
+    const m0 = new Date(x0);
+    for (let d = new Date(m0.getFullYear(), m0.getMonth() + 1, 1); d.getTime() <= x1; d = new Date(d.getFullYear(), d.getMonth() + 1, 1)) {
+      months += `<text class="hist-month" x="${xOf(d.getTime())}" y="${H - 8}" text-anchor="middle">${HIST_MON[d.getMonth()].toUpperCase()}</text>`;
+    }
+
+    const pts = vis.map(s => ({ s: s, cx: xOf(s.t), cy: yOf(valOf(s)) }));
+    const path = pts.map((p, i) => `${i ? 'L' : 'M'} ${p.cx} ${p.cy}`).join(' ');
+    const selPt = pts.find(p => p.s === sel);
+    const guide = selPt ? `<line class="hist-guide" x1="${selPt.cx}" x2="${selPt.cx}" y1="${PT - 8}" y2="${PB}"/>` : '';
+
+    // Rep labels on sessions a day or two apart would print on top of each
+    // other. Walk newest to oldest and keep a label only with room around it.
+    const showLab = new Set();
+    let lx = Infinity, ly = 0;
+    for (let i = pts.length - 1; i >= 0; i--) {
+      const p = pts[i];
+      if (lx - p.cx >= 24 || Math.abs(ly - p.cy) >= 14) { showLab.add(p); lx = p.cx; ly = p.cy; }
+    }
+    const dots = pts.map(p => {
+      const on = p.s === sel;
+      const ring = on ? `<circle cx="${p.cx}" cy="${p.cy}" r="8.5" fill="none" stroke="var(--text-primary)" stroke-width="1.5"/>`
+        : (metric !== 'volume' && p.s.isPR ? `<circle cx="${p.cx}" cy="${p.cy}" r="7.5" fill="none" stroke="${p.s.tone}" stroke-width="1.5"/>` : '');
+      const lab = metric !== 'volume' && (h.kind === 'load' || h.kind === 'added') && showLab.has(p)
+        ? `<text class="hist-rep" x="${p.cx}" y="${p.cy - 12}" text-anchor="middle">×${p.s.top.reps}</text>` : '';
+      return `<g class="hist-pt" onclick="FORGE.histPick(${p.s.t})">
+        <circle cx="${p.cx}" cy="${p.cy}" r="18" fill="transparent"/>${ring}
+        <circle cx="${p.cx}" cy="${p.cy}" r="${on ? 5.5 : 4.5}" fill="${p.s.tone}"/>${lab}</g>`;
+    }).join('');
+
+    const aria = `${h.name}, ${metric === 'volume' ? 'volume' : 'best set'} per session, ${vis.length} sessions`;
+    return `<svg class="hist-svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${aria}">
+      ${grid}${months}${guide}<path class="hist-line" d="${path}"/>${dots}</svg>`;
+  }
+
+  function renderHistory() {
+    const hs = state.hist;
+    if (!hs) return;
+    const content = document.getElementById('info-panel-content');
+    const panel = document.getElementById('info-panel');
+    if (!content || !panel) return;
+    const h = exerciseHistory(hs.id);
+    const metric = state.histMetric || 'load';
+    const range = state.histRange || 'all';
+
+    let cut = null;
+    if (range !== 'all') {
+      const d = new Date();
+      d.setMonth(d.getMonth() - (range === '3m' ? 3 : 6));
+      d.setHours(0, 0, 0, 0);
+      cut = d.getTime();
+    }
+    const vis = cut === null ? h.sessions : h.sessions.filter(s => s.t >= cut);
+    const sel = vis.find(s => s.t === hs.sel) || vis[vis.length - 1] || null;
+
+    // The record line uses the stored record, the same one the PRs tab shows.
+    const pr = Store.getPRs()[hs.id];
+    let recTxt = '', recDate = '';
+    if (pr) {
+      recTxt = (pr.mode === 'time' || pr.isTime) ? `${pr.bestTime}s` : pr.mode === 'reps' ? `${pr.bestReps} reps` : prSetDisplay(pr);
+      recDate = pr.date ? histDate(Date.parse(pr.date)) : '';
+    }
+
+    const seg = (items, cur, fn) => items.map(([id, label]) =>
+      `<button class="hist-seg-btn${id === cur ? ' active' : ''}" aria-pressed="${id === cur}" onclick="FORGE.${fn}('${id}')">${label}</button>`).join('');
+
+    const loadUnit = h.kind === 'time' ? 'longest hold' : h.kind === 'reps' ? 'best set' : h.paired ? 'top set · per hand' : 'top set';
+    const volUnit = h.kind === 'time' ? 'total time' : h.kind === 'reps' ? 'total reps' : h.paired ? 'lb moved · both hands' : 'lb moved';
+
+    let readout = '';
+    if (sel) {
+      const delta = vis.length >= 2 ? histDelta(h, metric, vis[0], vis[vis.length - 1]) : null;
+      readout = `
+        <div class="hist-readout">
+          <div class="hist-big"><span>${metric === 'volume' ? histVolLabel(h.kind, sel.vol) : histTopLabel(h.kind, sel)}</span><small>${metric === 'volume' ? volUnit : loadUnit}</small></div>
+          <div class="hist-meta">${histDate(sel.t)} · ${sel.dayName} · ${sel.sets.length} set${sel.sets.length === 1 ? '' : 's'}</div>
+          <div class="hist-delta ${delta ? delta.dir : ''}">${delta ? delta.long : 'One session in this range'}</div>
+        </div>`;
+    }
+
+    const W = Math.max(280, Math.min(panel.clientWidth || window.innerWidth, 480) - 40);
+    let chart;
+    if (vis.length >= HIST_MIN_POINTS) {
+      chart = histChart(h, vis, metric, cut === null ? h.sessions[0].t - 6 * 864e5 : cut, sel, W);
+    } else {
+      chart = `<div class="hist-empty">
+        <div>Chart starts at ${HIST_MIN_POINTS} sessions</div>
+        <span>${vis.length ? `${vis.length} logged in this range` : h.sessions.length ? 'None logged in this range' : 'Nothing logged for this move yet'}</span>
+      </div>`;
+    }
+
+    let note = '';
+    if (metric === 'volume' && h.kind === 'added') {
+      note = 'Volume here is your bodyweight minus the assist, times reps, so it drops when you lose weight even as the assist comes off.';
+    } else if (metric === 'volume' && h.kind === 'load' && vis.some(s => s.sets.some(x => !x.load))) {
+      note = 'Bodyweight sets count as zero load, so volume only sees the added weight.';
+    }
+
+    const pills = sel ? sel.sets.map(x =>
+      `<span class="hist-pill${x === sel.top.x ? ' top' : ''}">${h.kind === 'time' ? x.secs + 's' : x.label}</span>`).join('') : '';
+
+    const rows = vis.slice().reverse().map(s => `
+      <button class="hist-row${s === sel ? ' active' : ''}" aria-pressed="${s === sel}" onclick="FORGE.histPick(${s.t})">
+        <span class="hist-row-date">${histDate(s.t)}</span>
+        <span class="hist-row-code" style="color:${s.tone}">${s.code}</span>
+        <span class="hist-row-top">${histTopLabel(h.kind, s)}</span>
+        <span class="hist-row-vol">${histVolLabel(h.kind, s.vol)}</span>
+      </button>`).join('');
+
+    panel.classList.remove('power', 'hypertrophy', 'calisthenics', 'core');
+    content.innerHTML = `
+      <div class="hist">
+        <div class="hist-head">
+          <div class="info-panel-title">${h.name}</div>
+          ${recTxt ? `<div class="hist-record">Record <b>${recTxt}</b>${recDate ? ' · ' + recDate : ''}</div>` : ''}
+        </div>
+        <div class="hist-controls">
+          <div class="hist-seg" role="group" aria-label="Measure">${seg([['load', h.kind === 'time' ? 'Best' : h.kind === 'reps' ? 'Reps' : 'Load'], ['volume', 'Volume']], metric, 'histMetric')}</div>
+          <div class="hist-seg hist-range" role="group" aria-label="Range">${seg([['3m', '3M'], ['6m', '6M'], ['all', 'All']], range, 'histRange')}</div>
+        </div>
+        ${readout}
+        ${chart}
+        ${note ? `<div class="hist-note">${note}</div>` : ''}
+        ${sel ? `<div class="hist-sets"><div class="hist-label">Sets · ${histDate(sel.t)}</div><div class="hist-pills">${pills}</div></div>` : ''}
+        ${rows ? `<div class="hist-list">
+          <div class="sheet-section-label hist-list-head"><span>Sessions</span><span>${h.kind === 'time' || h.kind === 'reps' ? 'Best · total' : 'Top set · vol'}</span></div>
+          ${rows}
+        </div>` : ''}
+      </div>`;
+  }
+
+  function openHistory(exerciseId) {
+    if (!exerciseId) return;
+    state.hist = { id: exerciseId, sel: null };
+    if (window.ForgeFigures) window.ForgeFigures.stopAll();
+    renderHistory();
+    showPanel('info-panel');
+    const panel = document.getElementById('info-panel');
+    if (panel) panel.scrollTop = 0;
+  }
+
+  function histMetric(m) { state.histMetric = m === 'volume' ? 'volume' : 'load'; renderHistory(); }
+  function histRange(r) { state.histRange = (r === '3m' || r === '6m') ? r : 'all'; if (state.hist) state.hist.sel = null; renderHistory(); }
+  function histPick(t) { if (state.hist) { state.hist.sel = Number(t); renderHistory(); } }
 
   function checkAndUpdateTimePR(exerciseId, exerciseName, seconds) {
     const prs = Store.getPRs();
@@ -3266,14 +3642,18 @@ Store.saveActiveWorkout({
     const byTime   = all.filter(p => p.mode === 'time' || p.isTime)
                         .sort((x, y) => (y.bestTime || 0) - (x.bestTime || 0));
 
+    // Every row opens that move's history sheet (v0.29), with a small trend
+    // line of its recent sessions beside the record.
     const row = (pr, value, sub) => `
-      <div class="pr-item">
-        <div>
-          <div class="pr-item-name">${pr.name}</div>
-          <div class="pr-item-detail">${sub}</div>
-        </div>
-        <div class="pr-item-value">${value}</div>
-      </div>`;
+      <button class="pr-item pr-tap" onclick="FORGE.openHistory('${pr.id}')" aria-label="${pr.name}, ${value}. Open history">
+        <span class="pr-item-text">
+          <span class="pr-item-name">${pr.name}</span>
+          <span class="pr-item-detail">${sub}</span>
+        </span>
+        ${histSparkline(exerciseHistory(pr.id))}
+        <span class="pr-item-value">${value}</span>
+        <i class="ti ti-chevron-right pr-item-go" aria-hidden="true"></i>
+      </button>`;
 
     const section = (title, items, render) => items.length ? `
       <section class="section-block">
@@ -3305,7 +3685,8 @@ Store.saveActiveWorkout({
       <div class="sheet-note">
         The big number is the best set you actually did. e1RM is an estimate of
         your one-rep max from that set, and it only appears at 12 reps or fewer
-        because the formula stops meaning anything above that.
+        because the formula stops meaning anything above that. Tap any record
+        for its history.
       </div>
     `;
   }
@@ -3648,6 +4029,10 @@ Store.saveActiveWorkout({
     showInfo,
     showWarmupInfo,
     ackRelease,
+    openHistory,
+    histMetric,
+    histRange,
+    histPick,
     toggleTimer: toggleTimer,
     extendTimer,
     openTracker,
