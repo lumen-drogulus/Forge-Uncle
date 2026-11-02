@@ -496,6 +496,7 @@ const FORGE_DATA = {
           rest: 60,
           restLabel: "60 sec",
           weightMode: "free",
+          pair: true,            // two dumbbells: log one, total shown (v0.28)
           tier: 3,
           image: "farmer-carry.png",
           video: "https://www.youtube.com/results?search_query=farmer+carry+proper+form",
@@ -569,6 +570,7 @@ const FORGE_DATA = {
           rest: 60,
           restLabel: "60 sec",
           weightMode: "free",
+          pair: true,            // two dumbbells: log one, total shown (v0.28)
           image: "db-incline-press.png",
           video: "https://www.youtube.com/watch?v=8iPEnn-ltC8",
           tip: "Set bench to 30-degree incline. Three-count descent on every rep. Squeeze at the top without clanking the dumbbells together. Shifts emphasis to upper chest and front delts.",
@@ -599,6 +601,7 @@ const FORGE_DATA = {
           rest: 45,
           restLabel: "45 sec",
           weightMode: "free",
+          pair: true,            // two dumbbells: log one, total shown (v0.28)
           image: "db-lateral-raise.png",
           video: "https://www.youtube.com/watch?v=3VcKaXpzqRo",
           tip: "Slight forward lean, thumbs tilted slightly down (like pouring water). Controlled up, slow down. Don't ego-lift these. Feel the burn at rep 10, fight for 15.",
@@ -775,6 +778,7 @@ const FORGE_DATA = {
           rest: 45,
           restLabel: "45 sec",
           weightMode: "free",
+          pair: true,            // two dumbbells: log one, total shown (v0.28)
           tier: 3,
           image: "db-shrugs.png",
           video: "https://www.youtube.com/results?search_query=dumbbell+shrug+proper+form+traps",
@@ -791,6 +795,7 @@ const FORGE_DATA = {
           rest: 45,
           restLabel: "45 sec",
           weightMode: "free",
+          pair: true,            // two dumbbells: log one, total shown (v0.28)
           image: "db-hammer-curls.png",
           video: "https://www.youtube.com/watch?v=zC3nLlEvin4",
           tip: "Neutral grip (palms facing each other). Alternating or simultaneous. Controlled, no swinging. Hits brachialis and brachioradialis for arm thickness and forearm development.",
@@ -806,6 +811,7 @@ const FORGE_DATA = {
           rest: 45,
           restLabel: "45 sec",
           weightMode: "free",
+          pair: true,            // two dumbbells: log one, total shown (v0.28)
           image: "rear-delt-flyes.png",
           video: "https://www.youtube.com/watch?v=EA7u4Q_8HQ0",
           tip: "Bent over, slight elbow bend, raise out to sides with a squeeze at top. Light weight, high control. Balances all the pressing in this program.",
@@ -894,6 +900,7 @@ const FORGE_DATA = {
           rest: 60,
           restLabel: "60 sec",
           weightMode: "free",
+          pair: true,            // two dumbbells: log one, total shown (v0.28)
           image: "bulgarian-split-squat.png",
           video: "https://www.youtube.com/watch?v=2C-uNgKwPLE",
           tip: "Rear foot on bench. Dumbbells at sides. Drop back knee straight down, drive through front heel. Unilateral work exposes and fixes imbalances bilateral squats hide. Rest between legs, not between sets.",
@@ -954,6 +961,7 @@ const FORGE_DATA = {
           rest: 60,
           restLabel: "60 sec",
           weightMode: "free",
+          pair: true,            // two dumbbells: log one, total shown (v0.28)
           image: "walking-lunges.png",
           video: "https://www.youtube.com/watch?v=L8fvypPrzzs",
           tip: "Dumbbells at sides. Long stride, upright torso, back knee kisses floor. High-fatigue by design after split squats, curls, and extensions. Moderate weight, quality steps.",

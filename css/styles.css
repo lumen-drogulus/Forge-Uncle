@@ -1004,6 +1004,8 @@ button { font: inherit; color: inherit; }
   padding: 0;
 }
 .load-input:focus { color: var(--acc); }
+.load-total { margin-top: 4px; font-family: var(--font-mono); font-size: 12px; letter-spacing: 1px; color: var(--text-muted); white-space: nowrap; }
+.load-total b { color: var(--acc); font-weight: 700; }
 .load-bw { font-family: var(--font-mono); font-weight: 800; font-size: 56px; line-height: 1.15; color: var(--text-secondary); }
 .reps-row { display: flex; align-items: center; justify-content: center; gap: 12px; }
 .reps-input {

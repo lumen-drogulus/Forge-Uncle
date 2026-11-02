@@ -7,5 +7,9 @@
 const FORGE_CONFIG = {
   owner: "Uncle",
   sheetsWebhookUrl: "",
-  sheetsViewUrl: ""
+  sheetsViewUrl: "",
+  // v0.28: he logged dumbbell moves as both hands combined. The app now asks
+  // for one dumbbell, so his older entries are halved once at launch. Safe to
+  // leave on: anything already per hand is marked and never halved again.
+  halveDumbbellHistory: true
 };

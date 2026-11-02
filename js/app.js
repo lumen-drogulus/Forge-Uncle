@@ -362,6 +362,7 @@
     applyBwModes();
     migratePRs();
     rebuildBwPRs();
+    migratePerHand();
     refreshCycle();
 
     // If localStorage is empty, try restoring from Sheets backup
@@ -377,6 +378,7 @@
         applyBwModes();
         migratePRs();
         rebuildBwPRs();
+        migratePerHand();
         refreshCycle();
         setupNavigation();
         restoreActiveWorkout();
@@ -479,11 +481,14 @@ Store.saveActiveWorkout({
   // someone who never saw the old version. Bump RELEASE.id with every release
   // that has notes; a release without notes keeps the old id and shows nothing.
   const RELEASE = {
-    id: 'v0.27',
+    id: 'v0.28',
     items: [
-      ['Rest alert volume', 'The alert is a little quieter now. Set it to suit you in Settings, from off to full, and tap Test to hear it.'],
+      ['Dumbbells: one hand', 'On dumbbell moves, enter the weight of one dumbbell. The total for both hands shows right under it.'],
+      ['10 lb bar', 'The plate calculator has a 10 lb bar option.'],
     ],
   };
+  // Shown only on a copy whose earlier dumbbell entries were totals and just got halved.
+  const PAIR_FIX_NOTE = ['Your dumbbell history', 'Your earlier dumbbell entries were both hands combined, so they have been halved to one dumbbell. Records and last-time numbers now match what you enter.'];
 
   function maybeShowRelease() {
     if (Store.get('seenRelease') === RELEASE.id) return;
@@ -501,7 +506,7 @@ Store.saveActiveWorkout({
         <div class="release-tag">Updated · ${RELEASE.id}</div>
         <h2 class="release-title" id="release-title">What's new</h2>
         <ul class="release-list">
-          ${RELEASE.items.map(([h, t]) => `<li><b>${h}</b><span>${t}</span></li>`).join('')}
+          ${RELEASE.items.concat(state.pairFixed ? [PAIR_FIX_NOTE] : []).map(([h, t]) => `<li><b>${h}</b><span>${t}</span></li>`).join('')}
         </ul>
         <button class="release-btn" id="release-ack" onclick="FORGE.ackRelease()">Got it <i class="ti ti-check"></i></button>
       </div>`;
@@ -1378,6 +1383,104 @@ Store.saveActiveWorkout({
     `;
   }
 
+  // ===== PER-HAND DUMBBELLS (v0.28) =====
+  // Moves flagged pair: true in data.js use two dumbbells. You enter the
+  // weight of ONE dumbbell (the number printed on it); the screen shows the
+  // total for both hands beside it. Stored weight stays per hand, so records,
+  // trends and prefill all read the number you typed.
+  const PAIRED_IDS = (() => {
+    const ids = new Set();
+    Object.values(FORGE_DATA.workouts).forEach(w => (w.exercises || []).forEach(e => { if (e.pair) ids.add(e.id); }));
+    return ids;
+  })();
+
+  function isPaired(ex) {
+    return !!(ex && ex.pair && ex.weightMode === 'free');
+  }
+
+  function fmtLoad(n) {
+    return String(Math.round(n * 10) / 10);
+  }
+
+  function pairDisplay(entered, reps) {
+    return `2\u00d7${fmtLoad(entered)} \u00d7 ${reps}`;
+  }
+
+  function updatePairTotal() {
+    const out = document.getElementById('load-total');
+    const input = document.getElementById('weight-input');
+    if (!out || !input) return;
+    const v = parseFloat(input.value) || 0;
+    const unit = state.weightUnit === 'kg' ? 'kg' : 'lb';
+    out.innerHTML = `\u00d7 2 = <b>${fmtLoad(v * 2)}</b> ${unit} total`;
+  }
+
+  // One pass over stored data for the paired moves, run at boot and after a
+  // restore or import. Every paired set and record gets perHand: true and the
+  // "2x45 x 10" display. Unmarked data is per hand already (the app always
+  // asked for one hand), except on a copy whose config.js lists the moves
+  // its owner logged as both hands combined (halveDumbbellHistory). There,
+  // unmarked values are halved once. The marker makes it run once per set,
+  // so an old backup imported later gets fixed the same way and nothing is
+  // ever halved twice.
+  function migratePerHand() {
+    const cfg = (typeof FORGE_CONFIG !== 'undefined' && FORGE_CONFIG.halveDumbbellHistory) || null;
+    const halves = id => cfg === true || (Array.isArray(cfg) && cfg.indexOf(id) !== -1);
+    const half = v => Math.round(v * 5) / 10;
+    let halved = 0;
+
+    const fixSets = (exLog) => {
+      if (!exLog || !PAIRED_IDS.has(exLog.id) || !Array.isArray(exLog.sets)) return false;
+      let changed = false;
+      exLog.sets.forEach(set => {
+        if (!set || set.perHand) return;
+        if (halves(exLog.id)) {
+          if (typeof set.weight === 'number') set.weight = half(set.weight);
+          if (typeof set.entered === 'number') set.entered = half(set.entered);
+          halved++;
+        }
+        const shown = typeof set.entered === 'number' ? set.entered : set.weight;
+        set.display = pairDisplay(shown || 0, set.repsDisplay !== undefined ? set.repsDisplay : set.reps);
+        set.perHand = true;
+        changed = true;
+      });
+      return changed;
+    };
+
+    const logs = Store.getLogs();
+    let logsChanged = false;
+    Object.values(logs).forEach(list => (list || []).forEach(entry => {
+      (entry.exercises || []).forEach(exLog => { if (fixSets(exLog)) logsChanged = true; });
+    }));
+    if (logsChanged) Store.saveLogs(logs);
+
+    const active = Store.getActiveWorkout();
+    if (active && active.activeWorkoutLog && Array.isArray(active.activeWorkoutLog.exercises)) {
+      let activeChanged = false;
+      active.activeWorkoutLog.exercises.forEach(exLog => { if (fixSets(exLog)) activeChanged = true; });
+      if (activeChanged) Store.saveActiveWorkout(active);
+    }
+
+    const prs = Store.getPRs();
+    let prsChanged = false;
+    Object.keys(prs).forEach(id => {
+      const pr = prs[id];
+      if (!PAIRED_IDS.has(id) || !pr || pr.perHand || pr.weight === undefined) return;
+      if (halves(id)) {
+        pr.weight = half(pr.weight);
+        if (typeof pr.entered === 'number') pr.entered = half(pr.entered);
+        pr.e1rm = e1rmOf(pr.weight, pr.reps || 0);
+        halved++;
+      }
+      pr.perHand = true;
+      prsChanged = true;
+    });
+    if (prsChanged) Store.savePRs(prs);
+
+    if (halved) state.pairFixed = (state.pairFixed || 0) + halved;
+    return halved;
+  }
+
   // Converts a stored set back into the number you actually typed.
   // BW+/BW- sets store TOTAL load (bodyweight +/- the added amount), but the
   // input box expects only the added amount. Without this, set 2 prefills with
@@ -1444,7 +1547,8 @@ Store.saveActiveWorkout({
           ? enteredOf(log.sets[log.sets.length - 1], ex)
           : (prevData ? enteredOf({ weight: prevData.weight }, ex) : ''));
     const unit = state.weightUnit === 'kg' ? 'kg' : 'lb';
-    const loadLabel = isBWPlus ? `Added · ${unit}` : isBWMinus ? `Assist · ${unit}` : `Load · ${unit}`;
+    const paired = isPaired(ex);
+    const loadLabel = isBWPlus ? `Added · ${unit}` : isBWMinus ? `Assist · ${unit}` : paired ? `Per hand · ${unit}` : `Load · ${unit}`;
 
     // Build rep options (or seconds for time-tracked exercises)
     const isTimeMode = ex.trackMode === 'time';
@@ -1513,7 +1617,7 @@ Store.saveActiveWorkout({
         ` : `
         <div class="stat-card">
           <div class="stat-label">Last time</div>
-          <div class="stat-value">${prevData ? prevData.weight + ' ' + unit : '—'}</div>
+          <div class="stat-value">${prevData ? (paired ? '2\u00d7' + fmtLoad(prevData.weight) : prevData.weight) + ' ' + unit : '—'}</div>
           <div class="stat-detail">${prevData ? prevData.detail : 'No data'}</div>
         </div>
         <div class="stat-card">
@@ -1562,7 +1666,8 @@ Store.saveActiveWorkout({
                 <button class="load-adj" onclick="FORGE.adjWeight(-5)" aria-label="Minus 5">−5</button>
                 <div class="load-center">
                   <label class="load-label" for="weight-input">${loadLabel}</label>
-                  <input type="number" class="load-input" id="weight-input" value="${lastWeight}" inputmode="numeric" enterkeyhint="done" placeholder="0">
+                  <input type="number" class="load-input" id="weight-input" value="${lastWeight}" inputmode="decimal" enterkeyhint="done" placeholder="0"${paired ? ' oninput="FORGE.updatePairTotal()"' : ''}>
+                  ${paired ? `<div class="load-total" id="load-total">\u00d7 2 = <b>${fmtLoad((parseFloat(lastWeight) || 0) * 2)}</b> ${unit} total</div>` : ''}
                 </div>
                 <button class="load-adj" onclick="FORGE.adjWeight(5)" aria-label="Plus 5">+5</button>
               `}
@@ -1636,6 +1741,8 @@ Store.saveActiveWorkout({
       } else if (ex.weightMode === 'bw-minus') {
         display = `BW-${entered} × ${reps}`;
         weight = Math.max(0, state.bodyWeight - entered);
+      } else if (isPaired(ex)) {
+        display = pairDisplay(entered, reps);
       } else {
         display = `${entered} × ${reps}`;
       }
@@ -1649,7 +1756,8 @@ Store.saveActiveWorkout({
       reps: repsNum,
       repsDisplay: reps,
       display: display,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      ...(isPaired(ex) ? { perHand: true } : {})
     });
 
     state.currentSetIndex++;
@@ -1713,6 +1821,8 @@ Store.saveActiveWorkout({
       } else if (ex.weightMode === 'bw-minus') {
         display = `BW-${entered} × ${reps}`;
         weight = Math.max(0, state.bodyWeight - entered);
+      } else if (isPaired(ex)) {
+        display = pairDisplay(entered, reps);
       } else {
         display = `${entered} × ${reps}`;
       }
@@ -1726,7 +1836,8 @@ Store.saveActiveWorkout({
       reps: repsNum,
       repsDisplay: reps,
       display: display,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      ...(isPaired(ex) ? { perHand: true } : {})
     };
 
     if (ex.trackMode === 'time') {
@@ -2148,7 +2259,8 @@ Store.saveActiveWorkout({
         weightMode: ex ? ex.weightMode : 'free',
         reps: reps,
         e1rm: e1rmOf(weight, reps),
-        date: now, prVersion: 3
+        date: now, prVersion: 3,
+        ...(isPaired(ex) ? { perHand: true } : {})
       };
       Store.savePRs(prs);
       return isFirst ? false : prev;   // first entry records silently; a beaten record is handed back
@@ -2164,6 +2276,7 @@ Store.saveActiveWorkout({
     const shown = (pr.entered !== undefined && pr.entered !== null) ? pr.entered : pr.weight;
     if (pr.weightMode === 'bw-plus') return `BW+${shown} \u00d7 ${pr.reps}`;
     if (pr.weightMode === 'bw-minus') return `BW-${shown} \u00d7 ${pr.reps}`;
+    if (pr.perHand) return pairDisplay(shown, pr.reps);
     return `${shown} \u00d7 ${pr.reps}`;
   }
 
@@ -2486,6 +2599,7 @@ Store.saveActiveWorkout({
     if (!input) return;
     const current = parseFloat(input.value) || 0;
     input.value = Math.max(0, current + amount);
+    updatePairTotal();
   }
 
   function adjSeconds(amount) {
@@ -2914,6 +3028,7 @@ Store.saveActiveWorkout({
         <span class="plate-bar-label">Bar</span>
         <button class="bw-btn ${pc.bar === 45 ? 'active' : ''} ${typeClass}" onclick="FORGE.plateBar(45)">45 lb</button>
         <button class="bw-btn ${pc.bar === 35 ? 'active' : ''} ${typeClass}" onclick="FORGE.plateBar(35)">35 lb</button>
+        <button class="bw-btn ${pc.bar === 10 ? 'active' : ''} ${typeClass}" onclick="FORGE.plateBar(10)">10 lb</button>
         <button class="bw-btn ${pc.bar === 0 ? 'active' : ''} ${typeClass}" onclick="FORGE.plateBar(0)">No bar</button>
         <button class="bw-btn" style="color:var(--red);" onclick="FORGE.plateClear()">Clear</button>
       </div>
@@ -2947,6 +3062,7 @@ Store.saveActiveWorkout({
     const total = pc.bar + pc.plates.reduce((s, p) => s + p, 0) * 2;
     const input = document.getElementById('weight-input');
     if (input) input.value = total;
+    updatePairTotal();
     closePlateCalc();
   }
 
@@ -3432,6 +3548,7 @@ Store.saveActiveWorkout({
         applyBwModes();
         migratePRs();
         rebuildBwPRs();
+        migratePerHand();
         refreshCycle();
         alert('Data imported successfully.');
         renderTab('home');
@@ -3555,6 +3672,7 @@ Store.saveActiveWorkout({
     plateBar,
     plateClear,
     plateApply,
+    updatePairTotal,
     exitSandbox
   };
 
