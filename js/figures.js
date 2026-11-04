@@ -795,9 +795,16 @@ const onlyGhost = els => {
 /* mount(container, id, opts) -> controller | null
    Builds the figure box and the tempo strip inside container.
    opts.tempo (default true), opts.chrome (default true: corner marks and labels). */
+// last angle picked per exercise, for this session only (v0.30)
+const viewPick = {};
 function mount(container, id, opts = {}) {
-  const fig = REG[id];
-  if (!fig || !container) return null;
+  const base = REG[id];
+  if (!base || !container) return null;
+  // angle presets (v0.30): a figure may list alternate cameras, each a complete figure of its own
+  // with the same keys and seq, so switching keeps the rep exactly where it is
+  const views = base.views ? base.views.map(v => ({ label: v.label, fig: REG[v.id] })).filter(v => v.fig) : null;
+  let vi = views && viewPick[id] != null && views[viewPick[id]] ? viewPick[id] : 0;
+  let fig = views ? views[vi].fig : base;
   const uid = "ff" + (++uidN);
   const seq = fig.procedural ? fig.seqLabels : fig.seq;
   const total = fig.procedural ? fig.period : seq.reduce((s, p) => s + p.dur, 0);
@@ -809,7 +816,7 @@ function mount(container, id, opts = {}) {
   box.className = "ffig-box";
   box.setAttribute("role", "img");
   box.tabIndex = 0;
-  box.setAttribute("aria-label", `${opts.name || fig.name || fig.id} demonstration. Tap to pause.`);
+  box.setAttribute("aria-label", `${opts.name || base.name || base.id} demonstration. Tap to pause.`);
   const svg = document.createElementNS(SVGNS, "svg");
   svg.setAttribute("class", "ffig");
   svg.setAttribute("viewBox", "0 0 300 300");
@@ -823,12 +830,22 @@ function mount(container, id, opts = {}) {
     <g class="labels"></g>
     ${opts.chrome === false ? "" : `<g>
       <path class="corner" d="M8 18V8H18M282 8H292V18M292 282V292H282M18 292H8V282"/>
-      <text class="chrome" x="16" y="21">${opts.code || fig.code || ""}${(opts.code || fig.code) ? " · " : ""}${fig.id.toUpperCase()}</text>
-      <text class="chrome" x="284" y="21" text-anchor="end">${fig.view}</text>
+      <text class="chrome" x="16" y="21">${opts.code || base.code || ""}${(opts.code || base.code) ? " · " : ""}${base.id.toUpperCase()}</text>
+      ${views && views.length > 1 ? "" : `<text class="chrome" x="284" y="21" text-anchor="end">${fig.view}</text>`}
       <text class="chrome state" x="16" y="286"></text>
       <text class="chrome count" x="284" y="286" text-anchor="end"></text>
     </g>`}`;
   box.appendChild(svg);
+  let chip = null;
+  if (views && views.length > 1 && opts.chrome !== false) {
+    // its own control: tapping the figure already pauses it
+    chip = document.createElement("div");
+    chip.className = "ffig-views";
+    chip.setAttribute("role", "group");
+    chip.setAttribute("aria-label", "Camera angle");
+    chip.innerHTML = views.map((v, i) => `<button type="button" data-i="${i}" aria-pressed="${i === vi}">${v.label}</button>`).join("");
+    box.appendChild(chip);
+  }
   wrap.appendChild(box);
   let segs = [];
   if (opts.tempo !== false) {
@@ -843,12 +860,15 @@ function mount(container, id, opts = {}) {
 
   const world = svg.querySelector(".world"), liveG = svg.querySelector(".live"), ghostL = svg.querySelector(".ghostl");
   const labelsG = svg.querySelector(".labels"), stateT = svg.querySelector(".state"), countT = svg.querySelector(".count");
-  const { k, cx, cy } = fig.frame;
-  const ox = 150 - cx * k, oy = 150 - cy * k;
-  world.setAttribute("transform", `translate(${r1(ox)} ${r1(oy)}) scale(${k})`);
+  let k, ox, oy;
+  const setFrame = () => {
+    k = fig.frame.k; ox = 150 - fig.frame.cx * k; oy = 150 - fig.frame.cy * k;
+    world.setAttribute("transform", `translate(${r1(ox)} ${r1(oy)}) scale(${k})`);
+  };
+  setFrame();
   const toScreen = p => [ox + p[0] * k, oy + p[1] * k];
 
-  const c = { fig, box, wrap, time: 0, playing: !reduceMotion(), visible: true, uid };
+  const c = { fig, base, box, wrap, time: 0, playing: !reduceMotion(), visible: true, uid };
   const musFor = effort => {
     const m = { __id: uid };
     for (const name in fig.muscles) {
@@ -906,6 +926,18 @@ function mount(container, id, opts = {}) {
     });
     if (fig.procedural && segs.length) segs.forEach((g, i) => { const want = i === s.pi && r.tempoLabel ? r.tempoLabel : seq[i].label; if (g.l.textContent !== want) g.l.textContent = want; });
   };
+  c.setView = i => {
+    if (!views || !views[i] || i === vi) return;
+    vi = i; viewPick[id] = i; fig = c.fig = views[i].fig;
+    setFrame(); paint(ghostL, []);
+    if (chip) chip.querySelectorAll("button").forEach((b, j) => b.setAttribute("aria-pressed", String(j === i)));
+    c.draw();
+  };
+  if (chip) chip.addEventListener("click", e => {
+    e.stopPropagation();
+    const b = e.target.closest("button");
+    if (b) c.setView(+b.dataset.i);
+  });
   c.play = () => { c.playing = true; wake(); c.draw(); };
   c.pause = () => { c.playing = false; c.draw(); };
   c.toggle = () => (c.playing ? c.pause() : c.play());
@@ -930,7 +962,7 @@ window.ForgeFigures = {
   define, mount, stopAll,
   has: id => !!REG[id],
   get: id => REG[id],
-  list: () => Object.keys(REG),
+  list: () => Object.keys(REG).filter(k => !REG[k].alt),
   _live: live,
   lib: LIB,
 };

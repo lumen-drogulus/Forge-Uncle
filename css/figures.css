@@ -51,3 +51,10 @@
 .ffig .chrome { font-family: var(--font-mono); font-size: 7.5px; letter-spacing: 1.2px; fill: var(--text-faint); }
 .ffig .corner { fill: none; stroke: var(--border-light); stroke-width: 1; }
 .ffig .grid-dot { fill: #1B1E22; }
+
+/* Angle presets (v0.30): SIDE · FRONT chip in the top-right corner, its own tap target */
+.ffig-views { position: absolute; top: 4px; right: 14px; display: flex; gap: 0; z-index: 1; }
+.ffig-views button { appearance: none; background: none; border: 0; margin: 0; padding: 7px 6px 8px; min-height: 30px; font-family: var(--font-mono); font-size: 9px; letter-spacing: 1.2px; line-height: 1; color: var(--text-faint); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.ffig-views button + button::before { content: "·"; margin-right: 6px; color: var(--text-faint); }
+.ffig-views button[aria-pressed="true"] { color: var(--acc); }
+.ffig-views button:focus-visible { outline: 1px solid var(--acc); outline-offset: -2px; }

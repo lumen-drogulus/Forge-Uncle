@@ -485,6 +485,10 @@ Store.saveActiveWorkout({
   // jumping a version. Add a new entry at the top for every release that has
   // notes; a release without notes adds nothing and shows nothing.
   const RELEASES = [
+    { id: 'v0.30', items: [
+      ['Second camera angle', 'Some demos now have a second view. Tap SIDE, FRONT, ABOVE, BEHIND or SPOTTER in the corner of the figure: push-ups, the bench presses, overhead press, squats, pull-ups, pulldowns, face pulls, leg press and more.'],
+      ['Cable attachments', 'Cable moves now say which attachment to clip on, and why, right under the demo.'],
+    ] },
     { id: 'v0.29', items: [
       ['Exercise history', 'Tap any record on the PRs tab to see that move over time: top set or volume, the last 3 months, 6 months or all of it. Tap a point for that day’s sets.'],
       ['Trend box', 'During a workout, Trend now shows the change in pounds, reps or seconds over your last three sessions of that move, from any workout day. Tap it for the full history.'],
@@ -3457,6 +3461,31 @@ Store.saveActiveWorkout({
   }
 
   // ===== INFO PANEL =====
+  // Cable attachments (v0.30): line-art icon, name and why, under the figure on the Tips sheet.
+  // Picks live in FORGE_DATA.attachments by exercise id; the drawings live here.
+  const ATT_RING = '<circle cx="32" cy="5" r="3"/>';
+  const ATTACHMENTS = {
+    'rope': { name: 'Rope', svg: ATT_RING + '<path d="M32 8V12"/><rect x="29.5" y="12" width="5" height="4" rx="1" class="f"/><path d="M30.5 16L16 25M33.5 16L48 25" class="thick"/><circle cx="14" cy="26.5" r="3.4" class="f"/><circle cx="50" cy="26.5" r="3.4" class="f"/>' },
+    'short-bar': { name: 'Short straight bar', svg: ATT_RING + '<path d="M32 8V15"/><rect x="14" y="15" width="36" height="4" rx="1.5" class="f"/>' },
+    'lat-bar': { name: 'Wide lat bar', svg: ATT_RING + '<path d="M32 8V13"/><path d="M2 22L8 13H56L62 22" class="thick"/><path d="M12 13V16M52 13V16" class="grip"/>' },
+    'neutral-bar': { name: 'Neutral-grip bar', svg: ATT_RING + '<path d="M32 8V11"/><rect x="14" y="11" width="36" height="3.4" rx="1" class="f"/><rect x="19" y="14.4" width="4" height="14" rx="1.5" class="f"/><rect x="41" y="14.4" width="4" height="14" rx="1.5" class="f"/>' },
+    'v-handle': { name: 'V-handle', svg: ATT_RING + '<path d="M32 8V12M32 12L24 26M32 12L40 26" class="thick"/><rect x="20" y="25" width="24" height="4" rx="1.5" class="f"/>' },
+    'd-handle': { name: 'Single handle', svg: ATT_RING + '<path d="M32 8L21 22M32 8L43 22" class="thick"/><rect x="19" y="22" width="26" height="5" rx="2" class="f"/>' },
+  };
+  function attachmentHTML(id) {
+    const a = FORGE_DATA.attachments && FORGE_DATA.attachments[id];
+    const k = a && ATTACHMENTS[a.kind];
+    if (!k) return '';
+    return `<div class="info-attach">
+        <svg class="info-attach-icon" viewBox="0 0 64 32" aria-hidden="true">${k.svg}</svg>
+        <div class="info-attach-text">
+          <div class="info-attach-label">Attachment</div>
+          <div class="info-attach-name">${k.name}${a.count > 1 ? ` <span class="x">× ${a.count}</span>` : ''}</div>
+          <div class="info-attach-why">${a.why}</div>
+        </div>
+      </div>`;
+  }
+
   function showInfo() {
     const day = activeDay();
     const workout = FORGE_DATA.workouts[day.id];
@@ -3469,6 +3498,7 @@ Store.saveActiveWorkout({
     content.innerHTML = `
       <div class="info-panel-title">${ex.name}</div>
       <div id="info-figure"></div>
+      ${attachmentHTML(ex.id)}
       <div class="info-panel-tip">${ex.tip}</div>
       ${(ex.isFinisher || ex.isPrimer) && ex.finisherProgression ? `<div style="font-size:12px;color:var(--amber);margin-bottom:12px;">${ex.isPrimer ? '\u26a1' : '\ud83d\udd25'} ${ex.finisherProgression}</div>` : ''}
       <button class="info-panel-video-btn" onclick="window.open('${ex.video}', '_blank')">

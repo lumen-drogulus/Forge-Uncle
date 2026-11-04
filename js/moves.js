@@ -928,14 +928,15 @@ function makeFlatPress(o) {
   };
   calibrate3(cam, k => FIG.build(k, { mus: { __id: "cal" }, phase: "", pt: 0, seg: null, uid: "cal" }).J, sampleKeys(FIG));
   FIGS.push(FIG);
+  FIG._def = { spec, o, bench: { x0: o.pelvisX - 96, x1: o.pelvisX + 22 } };   // for the angle preset (moves_95_views.js)
 }
 
 makeFlatPress({
-  id: "bb-flat-bench", name: "Barbell Flat Bench Press", pelvisX: 40, touchT: 0.72, grip: 25, flare: 0.75,
+  id: "bb-flat-bench", name: "Barbell Flat Bench Press", pelvisX: 40, touchT: 0.72, grip: 32, flare: 0.55,
   touchLabel: "LOWER CHEST", muscles: { chest: 1, triceps: 0.55, frontdelt: 0.5 },
 });
 makeFlatPress({
-  id: "cg-bench-press", name: "Close-Grip Bench Press", pelvisX: 40, touchT: 0.68, grip: 18, flare: 0.22, pause: 0.35,
+  id: "cg-bench-press", name: "Close-Grip Bench Press", pelvisX: 40, touchT: 0.68, grip: 18, flare: 0.55, pause: 0.35,
   touchLabel: "NO BOUNCE", muscles: { triceps: 1, chest: 0.55, frontdelt: 0.45 },
   extraLabel: (J, p, ctx, P) => { const lp = P([30, 24, 0]); return { at: [lp[0], lp[1]], text: "ELBOWS TUCKED", on: p.d > 0.6, anchor: "middle" }; },
 });
@@ -978,6 +979,7 @@ function makeIncline(o) {
   };
   calibrate3(cam, k => FIG.build(k, { mus: { __id: "cal" }, phase: "", pt: 0, seg: null, uid: "cal" }).J, sampleKeys(FIG));
   FIGS.push(FIG);
+  FIG._def = { spec, o, incline: { ANG, SEAT, seatX0: 44 - 16, seatX1: 44 + 26 } };   // for the angle preset
   return { base, SH };
 }
 
@@ -994,7 +996,7 @@ function makeIncline(o) {
         TOP = [sh[0] + 1, sh[1] + 61];
         BOT = [up[0] + base.ant[0] * 2.6, up[1] + base.ant[1] * 2.6];
       }
-      return barArms(base, barPath(TOP, BOT, p.d), 25, 0.75);
+      return barArms(base, barPath(TOP, BOT, p.d), 32, 0.55);
     },
     rack: 0,
     items: (J, p, P) => { const be = barEnd(P, [...barPath(TOP, BOT, p.d), 0]); return [be.back, be.front]; },
@@ -1307,6 +1309,7 @@ const calib = (cam, FIG) => calibrate3(cam, k => FIG.build(k, { mus: { __id: "ca
   };
   REST = l3(s3(mix3(solve3(spec(FIG.keys.out)).gripR, solve3(spec(FIG.keys.out)).gripL, 0.5), EXIT));
   calib(cam, FIG); FIGS.push(FIG);
+  FIG._def = { spec, EXIT };   // for the angle preset
 })();
 
 /* ---- Cable crunch: kneel facing the stack, rope by the ears, hips locked, curl the ribs down ---- */
@@ -1413,6 +1416,7 @@ const calib = (cam, FIG) => calibrate3(cam, k => FIG.build(k, { mus: { __id: "ca
     },
   };
   calib(cam, FIG); FIGS.push(FIG);
+  FIG._def = { spec, PULLEY, SEAT };   // for the angle preset
 })();
 
 /* ---- Cable flyes (3/4 front): handles at chest height, fixed slight elbow bend, hug ---- */
@@ -1554,6 +1558,7 @@ function sideMove(def) {
     },
   };
   calib(cam, FIG); FIGS.push(FIG);
+  FIG._def = def;   // kept so an angle preset (moves_95_views.js) can reuse the same pose spec
   return FIG;
 }
 const tilt2 = deg => n3([Math.sin(deg * D2R), Math.cos(deg * D2R), 0]);   // spine leaning forward by deg
@@ -2301,7 +2306,7 @@ function makePushup(o) {
 }
 
 (() => {
-  const G = makePushup({ handZ: 20, ahead: 3, botY: 26, head: 4, pole: [-1, 0.55, 0], flare: 0.55, handOut: 0.15 });
+  const G = makePushup({ handZ: 20, ahead: 3, botY: 26, head: 4, pole: [-1, 0.55, 0], flare: 1.35, handOut: 0.15 });
   sideMove({
     id: "pushup", frame: { k: 1.42, cx: 162, cy: 214 }, shadowR: 76, shadowX: 10,
     keys: { top: { a: G.aTop }, bot: { a: G.aBot } }, ghostKey: "bot",
@@ -2361,7 +2366,7 @@ function makePushup(o) {
 /* ---- Explosive push-ups: controlled down, max-speed press, hands leave the floor,
    catch on bent elbows, reset at the top ---- */
 (() => {
-  const G = makePushup({ handZ: 20, ahead: 3, botY: 26, head: 4, pole: [-1, 0.55, 0], flare: 0.55, handOut: 0.15 });
+  const G = makePushup({ handZ: 20, ahead: 3, botY: 26, head: 4, pole: [-1, 0.55, 0], flare: 1.35, handOut: 0.15 });
   const LIFT = 9;
   // airborne: arms nearly straight with the hands lifted
   const dz = 17.5 - 20, airY = G.wy + LIFT + Math.sqrt((G.REACH - 1) ** 2 - 9 - dz * dz);
@@ -4350,6 +4355,441 @@ const cuePath = (pts, on) => pth("M" + pts.map(P2).join("L"), "cue" + (on ? " on
         labels: [
           { at: [P(J.shoulder)[0], atPageY({ k: 1.04, cy: 176 }, 50)], text: a.i === 1 || a.i === 3 ? "SLOW HANDS" : plank ? "FULL PLANK" : "", on: true, anchor: "middle" },
           { at: [P([TOE[0], 0, 0])[0] - 4, P([0, 0, 0])[1] + 14], text: "TOES STAY PUT", on: a.i > 0 && a.i < 4, anchor: "middle" },
+        ],
+      };
+    },
+  });
+})();
+
+/* =========================================================
+   Angle presets (v0.30). A second camera on the figures whose
+   side view hides the point of the move (grip width, elbow
+   flare, stance, knee tracking). Each view is a complete figure:
+   same keys and seq as its base, its own camera, frame, labels
+   and draw-order calibration. The runtime shows a SIDE · FRONT
+   chip and swaps between them without restarting the rep.
+   ========================================================= */
+const FIG_BY_ID = id => FIGS.find(f => f.id === id);
+// front camera for a body that faces +x (all side figures): yaw -90 puts the camera ahead of the body
+const camFront = (elev = 12, floorY = 262, x0 = 150) => camera3(elev, x0, floorY, -90);
+// fit every joint of every key pose (plus the head) into the plate, leaving room for chrome and labels
+function autoFrame(cam, spec, keys, fit = {}) {
+  let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+  const take = (p, r = 0) => { const q = cam.P(p); x0 = Math.min(x0, q[0] - r); x1 = Math.max(x1, q[0] + r); y0 = Math.min(y0, q[1] - r); y1 = Math.max(y1, q[1] + r); };
+  const ks = Object.values(keys);
+  for (let i = 0; i < ks.length; i++) for (let j = 0; j < ks.length; j++) for (const t of [0, 0.5]) {
+    const J = solve3(spec(lerpObj(ks[i], ks[j], t)));
+    for (const n in J) { const v = J[n]; if (Array.isArray(v) && v.length === 3 && typeof v[0] === "number" && !/^(s|lat|ant|sTop|antTop|headDir)$/.test(n)) take(v, n === "head" ? 13 : 5); }
+    for (const e of fit.extra || []) take(e);
+  }
+  const W = fit.w || 230, H = fit.h || 200;
+  const k = Math.min(fit.kMax || 1.9, W / (x1 - x0), H / (y1 - y0));
+  return { k: r1(k * 100) / 100, cx: r1((x0 + x1) / 2), cy: r1((y0 + y1) / 2 + (fit.dy || 0) / k) };
+}
+function addView(baseId, v) {
+  const base = FIG_BY_ID(baseId), def = v.def || (base && base._def);
+  if (!base || !def) throw new Error("addView: no sideMove base for " + baseId);
+  // a view can bring its own keys (same names) when the base is a 2D figure with angle keys
+  const keys = v.keys || base.keys;
+  const cam = v.cam, P = cam.P;
+  v.frame = v.frame || autoFrame(cam, v.spec || def.spec, keys, v.fit);
+  const FIG = {
+    id: baseId + "@" + (v.key || "front"), alt: true, view: v.label || "FRONT", frame: v.frame,
+    keys, seq: base.seq, ghostKey: base.ghostKey, ghostFor: base.ghostFor, noGhost: base.noGhost,
+    muscles: v.muscles || base.muscles,
+    build(p, ctx) {
+      const sp = (v.spec || def.spec)(p), J = solve3(sp);
+      J._spec = sp;
+      // world y for a plate y (300 viewBox): pins bottom-line cue labels clear of the body
+      ctx.sy = y => FIG.frame.cy + (y - 150) / FIG.frame.k;
+      const r = v.draw(J, p, ctx, P, cam);
+      const yF = P([v.floorAt != null ? v.floorAt : 0, 0, 0])[1];
+      const back = [...(v.noFloor ? [] : floorEls(yF, v.floorX0 || 30, v.floorX1 || 270)),
+        floorShadow(ctx, 150 + (v.shadowX || 0), yF, v.shadowR || 34, v.shadowO != null ? v.shadowO : 0.9, v.shadowFlat || 0.3), ...(r.back || [])];
+      return { els: back.concat(draw3D(J, cam, r.mus || ctx.mus, r.items || [])), J, labels: r.labels || [], dots: r.dots || [], count: r.count };
+    },
+  };
+  calib(cam, FIG); FIGS.push(FIG);
+  const views = base.views || [{ label: base.view || "SIDE", id: base.id }];
+  views.push({ label: FIG.view, id: FIG.id });
+  base.views = views;
+  return FIG;
+}
+const mid3 = (a, b) => m3(a3(a, b), 0.5);
+// a label point on the bisector of the angle at V (screen points), d out from V
+const angLabel = (V, A, C, d) => { const u = nrm(add(nrm(sub(A, V)), nrm(sub(C, V)))); return [V[0] + u[0] * d, V[1] + u[1] * d + 3]; };
+// from above, a little to the near side: the body lies across the plate, its right side toward the top
+const camAbove = (elev = 66, floorY = 262) => camera3(elev, 150, floorY, 0);
+// upper-arm angle from the ribs, measured in the floor plane (what a coach means by elbow flare)
+function flareDeg(J, S) {
+  const u = s3(J["elbow" + S], J["sh" + S]), down = m3(J.s, -1);
+  const a = [u[0], 0, u[2]], b = n3([down[0], 0, down[2]]);
+  return angle3(a3(J["sh" + S], a), J["sh" + S], a3(J["sh" + S], b));
+}
+
+/* ---- Push-up family from above: hand width and the elbow angle to the ribs ---- */
+(() => {
+  const pushAbove = (id, o) => {
+    const base = FIG_BY_ID(id), aBot = base.keys.bot.a;
+    return addView(id, {
+      key: "above", label: "ABOVE", cam: camAbove(64), fit: { w: 236, h: 150, dy: -16, kMax: 1.6 },
+      noFloor: true, shadowR: 70, shadowFlat: 0.42, shadowO: 0.6,
+      draw(J, p, ctx, P) {
+        const deep = p.a <= aBot + 0.8;
+        const f = flareDeg(J, "L"), good = deep && f >= o.lo && f <= o.hi;
+        const E = P(J.elbowL), Sh = P(J.shL), down = P(a3(J.shL, m3(n3([-J.s[0], 0, -J.s[2]]), 16)));
+        const WR = P(J.wristR), WL = P(J.wristL), SR = P(J.shR), SL = P(J.shL);
+        const low = Math.max(P(J.wristL)[1], P(J.elbowL)[1], P(J.ankleL)[1]);
+        const back = o.width ? [pth(`M${r1(WR[0] + 7)} ${r1(WR[1])}H${r1(WR[0] + 14)}M${r1(WL[0] + 7)} ${r1(WL[1])}H${r1(WL[0] + 14)}M${r1(WR[0] + 12)} ${r1(WR[1])}V${r1(WL[1])}`, "cue on", "stroke-dasharray:none")] : [];
+        return {
+          back,
+          items: [{ depth: 1e4, tag: "cueA", els: deep ? [pth(protractor(Sh, E, down, 18), "cue" + (good ? " on" : ""))] : [] }],
+          labels: [
+            { at: angLabel(Sh, E, down, 34), text: deep ? `${Math.round(f)}°` : "", on: good, anchor: "middle" },
+            { at: [150, ctx.sy(258)], text: o.cue, on: deep ? good : false, anchor: "middle" },
+            ...(o.width ? [{ at: [WR[0] + 17, (WR[1] + WL[1]) / 2 + 3], text: o.width, on: true, anchor: "start" }] : []),
+          ],
+        };
+        void SR; void SL;
+      },
+    });
+  };
+  pushAbove("pushup", { lo: 35, hi: 55, cue: "ELBOWS 45° FROM RIBS" });
+  // diamond: from above the chest hides the hands, so this one gets a low front camera instead
+  const dBot = FIG_BY_ID("diamond-pushup").keys.bot.a;
+  addView("diamond-pushup", {
+    cam: camFront(10), fit: { w: 190, h: 165, dy: -12, kMax: 2.2 }, shadowR: 40, shadowFlat: 0.35,
+    floorAt: 40,
+    draw(J, p, ctx, P) {
+      const deep = p.a <= dBot + 0.8;
+      const WR = P(J.wristR), WL = P(J.wristL), ER = P(J.elbowR), EL = P(J.elbowL), SR = P(J.shR), SL = P(J.shL);
+      const y = Math.max(WR[1], WL[1]) + 8, tuck = Math.abs(ER[0] - EL[0]) <= Math.abs(SR[0] - SL[0]) + 40;
+      return {
+        back: [pth(`M${r1(SR[0])} ${r1(SR[1])}V${r1(y)}M${r1(SL[0])} ${r1(SL[1])}V${r1(y)}`, "cue" + (deep && tuck ? " on" : ""))],
+        labels: [
+          { at: [(WR[0] + WL[0]) / 2, y + 12], text: "HANDS TOUCH", on: true, anchor: "middle" },
+          { at: [Math.max(ER[0], EL[0]) + 12, Math.max(ER[1], EL[1]) + 3], text: "ELBOWS IN", on: deep && tuck, anchor: "start" },
+        ],
+      };
+    },
+  });
+})();
+/* ---- Bench family from the spotter's spot: behind the head, looking down the body.
+   Grip width, forearms over the elbows, and how far the elbows open. ---- */
+// a box on any three axes (centre, half-extent vectors); only faces toward the camera are drawn
+function obox3(cam, c, ax, ay, az, cls) {
+  const out = [];
+  for (const [n, u, v] of [[ax, ay, az], [ay, az, ax], [az, ax, ay]]) for (const sg of [1, -1]) {
+    const nn = m3(n, sg);
+    if (d3(n3(nn), cam.toCam) <= 0.02) continue;
+    const f = a3(c, nn);
+    out.push(pth(poly([a3(a3(f, u), v), a3(s3(f, u), v), s3(s3(f, u), v), s3(a3(f, u), v)].map(cam.P)), cls));
+  }
+  return out;
+}
+// barbell across the body (along z): bar, sleeves, two plates a side
+function barAcross(cam, at, depthBias = 0) {
+  const P = cam.P, D = cam.depth, items = [];
+  items.push({ depth: D(at) + depthBias, tag: "bar", els: [pth(`M${P2(P(a3(at, [0, 0, -104])))}L${P2(P(a3(at, [0, 0, 104])))}`, "cable", "stroke-width:2.4")] });
+  for (const sg of [1, -1]) {
+    const c = a3(at, [0, 0, sg * 84]);
+    items.push({ depth: D(c) + depthBias, tag: "plate" + (sg > 0 ? "A" : "B"), els: obox3(cam, c, [22.5, 0, 0], [0, 22.5, 0], [0, 0, 3.4], "iron") });
+  }
+  return items;
+}
+const SPOTTER = (elev = 44) => camera3(elev, 150, 250, 90);
+function benchView(id, o) {
+  const base = FIG_BY_ID(id), d = base._def;
+  return addView(id, {
+    key: "spotter", label: "SPOTTER", cam: SPOTTER(o.elev || 46), fit: { w: 250, h: 190, dy: o.dy || 0, kMax: 1.5 },
+    noFloor: true, shadowR: 1, shadowO: 0,
+    draw(J, p, ctx, P, cam) {
+      const back = [], items = [];
+      if (d.bench) items.push({ depth: cam.depth([d.bench.x0, BENCH.top - 20, 0]) - 60, tag: "bench",
+        els: [...obox3(cam, [(d.bench.x0 + d.bench.x1) / 2, BENCH.top - BENCH.pad / 2, 0], [(d.bench.x1 - d.bench.x0) / 2, 0, 0], [0, BENCH.pad / 2, 0], [0, 0, 14], "iron"),
+          ...obox3(cam, [(d.bench.x0 + d.bench.x1) / 2, (BENCH.top - BENCH.pad) / 2, 0], [(d.bench.x1 - d.bench.x0) / 2 - 12, 0, 0], [0, (BENCH.top - BENCH.pad) / 2, 0], [0, 0, 3], "iron-dim")] });
+      if (d.incline) {
+        const bk = m3(J.ant, -1), c = a3(a3(J.pelvis, m3(J.s, 0.57 * B.trunk)), m3(bk, 14.6));
+        items.push({ depth: cam.depth(c) - 60, tag: "bench",
+          els: [...obox3(cam, c, m3(J.s, 0.73 * B.trunk), m3(bk, 3), [0, 0, 14], "iron"),
+            ...obox3(cam, [(d.incline.seatX0 + d.incline.seatX1) / 2, d.incline.SEAT - BENCH.pad / 2, 0], [(d.incline.seatX1 - d.incline.seatX0) / 2, 0, 0], [0, BENCH.pad / 2, 0], [0, 0, 14], "iron")] });
+      }
+      const bar = mid3(J.gripR, J.gripL);
+      if (o.bar) items.push(...barAcross(cam, bar, 4));
+      if (o.db) for (const S of ["R", "L"]) {
+        const g = J["grip" + S];
+        items.push({ depth: cam.depth(g) + 4, tag: "db" + S, els: [...obox3(cam, g, [0, 0, 7.5], [0, 1.6, 0], [1.6, 0, 0], "iron"),
+          ...[-1, 1].flatMap(sg => obox3(cam, a3(g, [0, 0, sg * 9.5]), [7.5, 0, 0], [0, 7.5, 0], [0, 0, 2.4], "iron"))] });
+      }
+      const bot = p.d > 0.9, f = flareDeg(J, "R"), good = bot && f >= o.lo && f <= o.hi;
+      const E = P(J.elbowR), Sh = P(J.shR), W = P(J.wristR), down = P(a3(J.shR, m3(n3([J.s[0], 0, J.s[2]]), 16)));
+      const vert = Math.abs(n3(s3(J.elbowR, J.wristR))[1]) > Math.cos(16 * D2R) && Math.abs(n3(s3(J.elbowL, J.wristL))[1]) > Math.cos(16 * D2R);
+      items.push({ depth: 1e4, tag: "cue", els: [
+        ...(bot ? [pth(protractor(Sh, E, down, 16), "cue" + (good ? " on" : ""))] : []),
+        ...(o.forearm ? [pth(`M${r1(E[0])} ${r1(E[1] + 10)}V${r1(W[1] - 12)}`, "cue" + (bot && vert ? " on" : ""))] : []),
+      ] });
+      const lo = Math.max(P(J.head)[1] + 12, ...["wristR", "wristL", "elbowR", "elbowL"].map(n => P(J[n])[1]));
+      return {
+        back, items,
+        labels: [
+          { at: angLabel(Sh, E, down, 30), text: bot ? `${Math.round(f)}°` : "", on: good, anchor: "middle" },
+          { at: [150, ctx.sy(268)], text: o.cue, on: bot ? good : false, anchor: "middle" },
+          ...(o.forearm ? [{ at: [P(J.elbowL)[0], P(J.elbowL)[1] + 19], text: bot ? "FOREARMS UP" : "", on: bot && vert, anchor: "middle" }] : []),
+        ],
+      };
+    },
+  });
+}
+benchView("bb-flat-bench", { bar: true, lo: 40, hi: 70, cue: "ELBOWS 45 TO 70°", forearm: true });
+benchView("cg-bench-press", { bar: true, lo: 20, hi: 45, cue: "SHOULDER-WIDTH GRIP" });
+benchView("incline-bb-press", { bar: true, lo: 40, hi: 70, cue: "ELBOWS 45 TO 70°", forearm: true });
+benchView("db-incline-press", { db: true, lo: 40, hi: 75, cue: "ELBOWS UNDER THE BELLS", forearm: true });
+
+/* ---- Standing and split stances from the front: grip over the shoulders, stance, knees over toes ---- */
+// which side of the body lands on the right of the plate for this camera ("R" or "L")
+const rightSide = (J, P) => (P(J.shR)[0] > P(J.shL)[0] ? "R" : "L");
+const dbEnd = (cam, g, near = true) => ({ depth: cam.depth(g) + 3, tag: "db" + (g[2] < 0 ? "R" : "L"), els: hexEnd(cam.P(g), 7.4, near ? "iron" : "iron-dim") });
+// knees over toes, seen from the front: knee x lands within the foot's width, measured in the lifter's lateral axis
+function kneeTrack(J, S) {
+  const toe = J["toe" + S], heel = J["heel" + S], k = J["knee" + S];
+  const f = n3(s3(toe, heel)), side = n3([-f[2], 0, f[0]]);
+  return Math.abs(d3(s3(k, toe), side));
+}
+function kneeCues(J, P, on, Ss = ["R", "L"]) {
+  const back = [], ok = Ss.every(S => kneeTrack(J, S) < 4.5);
+  for (const S of Ss) {
+    const t = P(J["toe" + S]), k = P(J["knee" + S]);
+    back.push(pth(`M${r1(t[0])} ${r1(t[1] + 2)}L${r1(k[0])} ${r1(k[1] - 6)}`, "cue" + (on && ok ? " on" : "")));
+  }
+  return { back, ok };
+}
+(() => {
+  // overhead press: hands just outside the shoulders, forearms stacked under the bar the whole way
+  addView("bb-overhead-press", {
+    cam: camFront(6), fit: { w: 236, h: 214, dy: 8, kMax: 1.1 }, shadowR: 30,
+    draw(J, p, ctx, P, cam) {
+      const bar = mid3(J.gripR, J.gripL), SR = P(J.shR), SL = P(J.shL), WR = P(J.wristR), WL = P(J.wristL);
+      const vert = ["R", "L"].every(S => { const f = n3(s3(J["elbow" + S], J["wrist" + S])); return Math.abs(f[2]) < 0.2; });
+      const yB = Math.min(WR[1], WL[1]) - 16;
+      return {
+        back: [pth(`M${r1(SR[0])} ${r1(SR[1])}V${r1(yB)}M${r1(SL[0])} ${r1(SL[1])}V${r1(yB)}`, "cue")],
+        items: barAcross(cam, bar, 6),
+        labels: [
+          { at: [150, P([0, 0, 0])[1] + 14], text: "GRIP JUST OUTSIDE SHOULDERS", on: true, anchor: "middle" },
+          { at: [Math.max(P(J.elbowR)[0], P(J.elbowL)[0]) + 12, Math.max(P(J.elbowR)[1], P(J.elbowL)[1]) + 4], text: "FOREARMS STACKED", on: vert, anchor: "start" },
+        ],
+      };
+    },
+  });
+  // bodyweight squat: feet shoulder width, toes slightly out, knees follow the toes
+  addView("bw-squat", {
+    cam: camFront(8), fit: { w: 200, h: 200, dy: -6, kMax: 1.3 }, shadowR: 34,
+    draw(J, p, ctx, P) {
+      const deep = p.h > 0.6, kc = kneeCues(J, P, deep);
+      return {
+        back: kc.back,
+        labels: [
+          { at: [150, P([0, 0, 0])[1] + 14], text: "FEET SHOULDER WIDTH", on: true, anchor: "middle" },
+          { at: [Math.max(P(J.kneeR)[0], P(J.kneeL)[0], P(J.wristR)[0], P(J.wristL)[0]) + 12, P(J.kneeR)[1] + 4], text: "KNEES OVER TOES", on: deep && kc.ok, anchor: "start" },
+        ],
+      };
+    },
+  });
+  // Bulgarian split squat: front knee tracks the toes, hips level
+  addView("bulgarian-split-squat", {
+    cam: camFront(8), fit: { w: 200, h: 200, dy: -6, kMax: 1.3 }, shadowR: 34, floorAt: 36,
+    draw(J, p, ctx, P, cam) {
+      const deep = p.h > 0.6, kc = kneeCues(J, P, deep, ["L"]);
+      const HR = P(J.hipR), HL = P(J.hipL), level = Math.abs(J.hipR[1] - J.hipL[1]) < 2.5;
+      const bench = { depth: cam.depth([-78, 20, 0]) - 80, tag: "bench", els: [
+        ...obox3(cam, [-78, BENCH.top - BENCH.pad / 2, 0], [34, 0, 0], [0, BENCH.pad / 2, 0], [0, 0, 14], "iron-dim"),
+        ...obox3(cam, [-78, (BENCH.top - BENCH.pad) / 2, 0], [22, 0, 0], [0, (BENCH.top - BENCH.pad) / 2, 0], [0, 0, 3], "iron-dim")] };
+      return {
+        back: [...kc.back, pth(`M${r1(Math.min(HR[0], HL[0]) - 22)} ${r1(HR[1])}L${r1(Math.max(HR[0], HL[0]) + 22)} ${r1(HL[1])}`, "cue" + (level ? " on" : ""))],
+        items: [bench, dbEnd(cam, J.gripR, false), dbEnd(cam, J.gripL)],
+        labels: [
+          { at: [Math.min(HR[0], HL[0]) - 26, HL[1] + 3], text: "HIPS LEVEL", on: level, anchor: "end" },
+          { at: [Math.max(P(J.wristR)[0], P(J.wristL)[0]) + 14, P(J.kneeL)[1] + 4], text: "KNEE OVER TOES", on: deep && kc.ok, anchor: "start" },
+        ],
+      };
+    },
+  });
+})();
+
+/* ---- From behind: the pulldown's elbows driving to the hips, the face pull's elbows high, the bird dog's hips ---- */
+const camBehind = (elev = 8, floorY = 262) => camera3(elev, 150, floorY, 90);
+(() => {
+  const dPD = FIG_BY_ID("wide-lat-pulldown")._def;
+  addView("wide-lat-pulldown", {
+    key: "behind", label: "BEHIND", cam: camBehind(10), fit: { w: 236, h: 236, dy: 4, kMax: 1.05, extra: [dPD.PULLEY] }, shadowR: 30,
+    draw(J, p, ctx, P, cam) {
+      const bar = mid3(J.gripR, J.gripL), pl = dPD.PULLEY;
+      const ends = [a3(bar, [0, 0, -60]), a3(bar, [0, 0, 60])];
+      const bend = [a3(bar, [0, -8, -66]), a3(bar, [0, -8, 66])];
+      const items = [
+        { depth: cam.depth(bar) + 30, tag: "bar", els: [
+          pth(`M${P2(P(bend[0]))}L${P2(P(ends[0]))}L${P2(P(ends[1]))}L${P2(P(bend[1]))}`, "cable", "stroke-width:2.4"),
+          pth(`M${P2(P(bar))}L${P2(P(pl))}`, "cable")] },
+        { depth: cam.depth([0, dPD.SEAT, 0]) - 40, tag: "seat", els: obox3(cam, [0, dPD.SEAT - 3, 0], [16, 0, 0], [0, 3, 0], [0, 0, 18], "iron") },
+      ];
+      const low = p.d > 0.85, ER = P(J.elbowR), EL = P(J.elbowL), HR = P(J.hipR), HL = P(J.hipL);
+      return {
+        back: [pth(`M${r1(ER[0])} ${r1(ER[1] + 6)}L${r1(HR[0])} ${r1(HR[1] - 6)}M${r1(EL[0])} ${r1(EL[1] + 6)}L${r1(HL[0])} ${r1(HL[1] - 6)}`, "cue" + (low ? " on" : "")),
+          pth(circle(P(pl), 4.5), "iron")],
+        items,
+        labels: [
+          { at: [Math.max(EL[0], ER[0]) + 12, Math.max(EL[1], ER[1]) + 10], text: "ELBOWS TO HIPS", on: low, anchor: "start" },
+          { at: [150, P([0, 0, 0])[1] + 14], text: "HANDS OUTSIDE THE BENDS", on: true, anchor: "middle" },
+        ],
+      };
+    },
+  });
+  const dFP = FIG_BY_ID("face-pulls")._def;
+  addView("face-pulls", {
+    key: "behind", label: "BEHIND", cam: camBehind(14), fit: { w: 220, h: 236, dy: 0, kMax: 1.1 }, shadowR: 30,
+    draw(J, p, ctx, P, cam) {
+      const G = mix3(J.gripR, J.gripL, 0.5), knot = a3(G, [12, 0, 0]);
+      const items = [{ depth: cam.depth(knot) - 2, tag: "rope", els: [
+        pth(`M${P2(P(J.gripR))}L${P2(P(knot))}L${P2(P(J.gripL))}`, "chain"),
+        pth(`M${P2(P(knot))}L${P2(P(dFP.EXIT))}`, "cable"), pth(circle(P(knot), 2.2), "iron")] }];
+      const SR = P(J.shR), SL = P(J.shL), high = p.t > 0.6 && J.elbowR[1] >= J.shR[1] - 3 && J.elbowL[1] >= J.shL[1] - 3;
+      return {
+        back: [pth(`M${r1(Math.min(SR[0], SL[0]) - 40)} ${r1(SR[1])}L${r1(Math.max(SR[0], SL[0]) + 40)} ${r1(SL[1])}`, "cue" + (high ? " on" : ""))],
+        items,
+        labels: [
+          { at: [Math.max(P(J.elbowR)[0], P(J.elbowL)[0]) + 10, SL[1] + 16], text: "ELBOWS HIGH", on: high, anchor: "start" },
+          { at: [150, P(J.head)[1] - 24], text: "SPLIT THE ROPE", on: p.t > 0.97, anchor: "middle" },
+        ],
+      };
+    },
+  });
+  addView("bird-dog", {
+    key: "above", label: "ABOVE", cam: camAbove(70), fit: { w: 236, h: 170, dy: -14, kMax: 1.5 }, noFloor: true, shadowR: 70, shadowFlat: 0.45, shadowO: 0.5,
+    draw(J, p, ctx, P) {
+      const HR = P(J.hipR), HL = P(J.hipL), out = Math.max(p.l, p.r) > 0.85;
+      const level = Math.abs(J.hipR[1] - J.hipL[1]) < 2;
+      const lo = Math.max(...["wristL", "kneeL", "ankleL", "hipL", "shL"].map(n => P(J[n])[1]));
+      const back = [pth(`M${P2(HR)}L${P2(HL)}`, "cue" + (out && level ? " on" : ""), "stroke-dasharray:none;stroke-width:1.4")];
+      // the reach line: hand to foot of the working pair
+      const a = p.al > p.ar ? "L" : "R", l = a === "L" ? "R" : "L";
+      if (out) back.push(pth(`M${P2(P(J["handEnd" + a]))}L${P2(P(J["toe" + l]))}`, "cue on"));
+      return {
+        back,
+        labels: [
+          { at: [150, ctx.sy(258)], text: "HIPS SQUARE", on: out && level, anchor: "middle" },
+        ],
+      };
+    },
+  });
+})();
+
+/* ---- 3D front views for the flat 2D figures (back squat, the three pull-ups, leg press).
+   The approved 2D side views stay as they are; these share their key names and timing. ---- */
+(() => {
+  // back squat: high bar on the traps, feet about shoulder width, toes out 15 to 20°, hip crease below the knee
+  const toe = 17 * D2R;
+  const legs = { R: { ankle: [0, 8.4, -17], pole: [1, 0.15, -0.42], foot: n3([Math.cos(toe), 0, -Math.sin(toe)]) },
+                 L: { ankle: [0, 8.4, 17], pole: [1, 0.15, 0.42], foot: n3([Math.cos(toe), 0, Math.sin(toe)]) } };
+  const geo = h => ({ px: lerp(-1, -24, h), py: lerp(91.2, 41.5, h), th: lerp(8, 33, h) });
+  const barOf = J => a3(a3(J.shoulder, m3(J.ant, -5.5)), m3(J.s, 3));
+  const spec = p => { const g = geo(p.h);
+    return { pelvis: [g.px, g.py, 0], spine: tilt2(g.th), lat: FACE_RIGHT, head: lerp(2, 20, p.h) * 0.6, legs,
+      arms: J => { const b = barOf(J), o = {}; for (const S of ["R", "L"]) { const ou = out3(J, S); o[S] = { at: a3(b, m3(ou, 30)), pole: a3([-0.5, -1, 0], m3(ou, 0.4)) }; } return o; } }; };
+  const keys = { top: { h: 0 }, bot: { h: 1 } };
+  addView("bb-back-squat", {
+    def: { spec }, keys, cam: camFront(8), fit: { w: 236, h: 214, dy: 6, kMax: 1.15 }, shadowR: 36,
+    draw(J, p, ctx, P, cam) {
+      const deep = p.h > 0.6, kc = kneeCues(J, P, deep);
+      const hip = J.hipL[1], knee = J.kneeL[1], below = hip < knee;
+      return {
+        back: kc.back,
+        items: barAcross(cam, barOf(J), -30),
+        labels: [
+          { at: [150, P([0, 0, 0])[1] + 14], text: "TOES OUT 15-20°", on: true, anchor: "middle" },
+          { at: [Math.max(P(J.kneeR)[0], P(J.kneeL)[0]) + 12, P(J.kneeR)[1] + 4], text: "KNEES OVER TOES", on: deep && kc.ok, anchor: "start" },
+          { at: [Math.min(P(J.kneeR)[0], P(J.kneeL)[0]) - 12, P(J.kneeR)[1] + 4], text: p.h > 0.9 ? "BELOW PARALLEL" : "", on: below, anchor: "end" },
+        ],
+      };
+    },
+  });
+})();
+
+(() => {
+  // pull-ups and chin-ups from the front: hands on the bar, elbows drive down, chin clears
+  const BAR = 228, HALF_RIG = 74;
+  const hangSpec = o => p => {
+    // dead hang a hair short of full reach (planted grips must never be out of range), up to chin over the bar
+    const sx = lerp(-2, -6, p.u), dz = o.half - 17.5, dx = 1 - sx;
+    const hang = BAR - Math.sqrt((B.ua + B.grip - 1.6) ** 2 - dz * dz - dx * dx);
+    const sy = lerp(hang, BAR - 15, p.u);
+    const S = tilt2(lerp(-3, -10, p.u)), sh = [sx, sy, 0];
+    const pel = a3(sh, m3(S, -B.sh));
+    const lg = {};
+    for (const [Sd, sg] of [["R", -1], ["L", 1]]) lg[Sd] = { ankle: a3(pel, [-14 + 4 * p.u, -(B.thigh + B.shin) + 7, sg * 7]), pole: [1, 0, sg * 0.1], foot: n3([0.45, -0.9, 0]), sole: n3([-0.9, -0.45, 0]) };
+    return { pelvis: pel, spine: S, lat: FACE_RIGHT, head: lerp(0, -12, p.u), legs: lg,
+      arms: J => { const r = {}; for (const Sd of ["R", "L"]) { const ou = out3(J, Sd); r[Sd] = { at: a3([1, BAR, 0], m3(ou, o.half)), pole: o.chin ? a3([0.9, -1, 0], m3(ou, 0.25)) : a3([0.1, -1, 0], m3(ou, 1.8)) }; } return r; } };
+  };
+  const pullFront = (id, o) => addView(id, {
+    def: { spec: hangSpec(o) }, keys: { bot: { u: 0 }, top: { u: 1 } }, cam: camFront(4), noFloor: true, shadowO: 0,
+    fit: { w: 220, h: 214, dy: -4, kMax: 1.15, extra: [[0, BAR + 6, -HALF_RIG], [0, BAR + 6, HALF_RIG]] },
+    draw(J, p, ctx, P, cam) {
+      const a = P([1, BAR, -HALF_RIG]), b = P([1, BAR, HALF_RIG]);
+      const items = [{ depth: cam.depth([1, BAR, 0]) + 8, tag: "bar", els: [pth(`M${P2(a)}L${P2(b)}`, "cable", "stroke-width:3")] }];
+      if (o.belt) {
+        const pel = J.pelvis, hook = a3(pel, [9, -8, 0]), pc = a3(pel, [10, -34, 0]);
+        items.push({ depth: cam.depth(pc) + 2, tag: "plate", els: [pth(`M${P2(P(hook))}L${P2(P(a3(pc, [0, 11, 0])))}`, "chain"), pth(circle(P(pc), 11), "iron"), pth(circle(P(pc), 2.2), "dot")] });
+      }
+      const SR = P(J.shR), SL = P(J.shL), top = p.u > 0.97, chin = P(J.head)[1] + 4 < P([0, BAR, 0])[1] && top;
+      return {
+        back: [pth(`M${r1(a[0])} ${r1(a[1])}V${r1(a[1] - 8)}M${r1(b[0])} ${r1(b[1])}V${r1(b[1] - 8)}`, "line-dim"),
+          pth(`M${r1(SR[0])} ${r1(SR[1] + 4)}V${r1(a[1] - 4)}M${r1(SL[0])} ${r1(SL[1] + 4)}V${r1(a[1] - 4)}`, "cue")],
+        items,
+        labels: [
+          { at: [150, Math.max(P(J.toeR)[1], P(J.toeL)[1]) + 18], text: o.grip, on: true, anchor: "middle" },
+          { at: [Math.max(SR[0], SL[0]) + 34, P([0, BAR, 0])[1] + 18], text: top ? "CHIN OVER BAR" : "", on: chin, anchor: "start" },
+          { at: [Math.max(P(J.elbowR)[0], P(J.elbowL)[0]) + 10, Math.max(P(J.elbowR)[1], P(J.elbowL)[1]) + 4], text: ctx.phase === "Pull" ? "ELBOWS DOWN" : "", on: true, anchor: "start" },
+        ],
+      };
+    },
+  });
+  pullFront("weighted-pullup", { half: 27, grip: "HANDS WIDER THAN SHOULDERS", belt: true });
+  pullFront("pullup-bw", { half: 27, grip: "HANDS WIDER THAN SHOULDERS" });
+  pullFront("chinup-bw", { half: 19, grip: "PALMS IN, SHOULDER WIDTH", chin: true });
+})();
+
+(() => {
+  // leg press from behind the seat: feet on the platform, knees tracking the toes, no lockout
+  const HIP = [0, 56, 0], TR = 54 * D2R, S = n3([-Math.sin(TR), Math.cos(TR), 0]);
+  const RAIL = n3([1, 1, 0]), A_TOP = a3(HIP, m3([Math.sin(56 * D2R), Math.cos(56 * D2R), 0], 83.2));
+  let SL = 0; { let lo = 0, hi = 60; for (let i = 0; i < 40; i++) { const m = (lo + hi) / 2; if (l3(s3(s3(A_TOP, m3(RAIL, m)), HIP)) > 51.4) lo = m; else hi = m; } SL = (lo + hi) / 2; }
+  const ankleAt = s => s3(A_TOP, m3(RAIL, SL * (1 - s)));
+  const uF = n3([-1, 1, 0]), dn = RAIL, out = 12 * D2R;
+  const spec = p => {
+    const a = ankleAt(p.s), legs = {};
+    for (const [Sd, sg] of [["R", -1], ["L", 1]]) {
+      const f = n3(a3(m3(uF, Math.cos(out)), [0, 0, sg * Math.sin(out)]));
+      legs[Sd] = { ankle: a3(a, [0, 0, sg * 17]), pole: [-0.62, 0.78, sg * 0.45], foot: f, sole: dn };
+    }
+    return { pelvis: HIP, spine: S, lat: FACE_RIGHT, head: 16, legs,
+      arms: J => { const r = {}; for (const Sd of ["R", "L"]) { const ou = out3(J, Sd); r[Sd] = { at: a3(a3(HIP, m3(ou, 24)), [4, -2, 0]), pole: a3([0.2, 1, 0], m3(ou, 0.6)) }; } return r; } };
+  };
+  addView("leg-press", {
+    key: "behind", label: "BEHIND", def: { spec }, keys: { top: { s: 1 }, bot: { s: 0 } }, cam: camBehind(42), noFloor: true, shadowO: 0,
+    fit: { w: 230, h: 210, dy: 8, kMax: 1.4 },
+    draw(J, p, ctx, P, cam) {
+      const a = ankleAt(p.s), pc = a3(a3(a, m3(dn, 10.9)), m3(uF, 5));
+      const items = [
+        { depth: cam.depth(pc) - 30, tag: "platform", els: obox3(cam, pc, m3(uF, 24), [0, 0, 40], m3(dn, 2.5), "iron") },
+        { depth: cam.depth([-30, 40, 0]) - 60, tag: "seat", els: [...obox3(cam, a3(J.pelvis, m3(J.ant, -9)), m3(J.s, 6), [0, 0, 20], m3(J.ant, 3), "iron"),
+          ...obox3(cam, a3(a3(J.pelvis, m3(J.s, 30)), m3(J.ant, -14)), m3(J.s, 28), [0, 0, 20], m3(J.ant, 3), "iron")] },
+      ];
+      const kc = kneeCues(J, P, p.s < 0.4);
+      const kA = angle3(J.hipL, J.kneeL, J.ankleL), soft = kA >= 150 && kA <= 172;
+      return {
+        back: kc.back, items,
+        labels: [
+          { at: [Math.max(P(J.kneeR)[0], P(J.kneeL)[0]) + 12, P(J.kneeR)[1] + 4], text: "KNEES OVER TOES", on: p.s < 0.4 && kc.ok, anchor: "start" },
+          { at: [150, ctx.sy(266)], text: "SOFT KNEES, NO LOCKOUT", on: soft && p.s > 0.9, anchor: "middle" },
         ],
       };
     },

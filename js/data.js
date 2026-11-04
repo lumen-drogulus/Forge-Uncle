@@ -48,6 +48,19 @@ const FORGE_DATA = {
     hypertrophy: "Work the rep range from bottom to top. When you hit the top of the range across all sets, add weight and reset to the bottom of the range."
   },
 
+  // Cable attachment for each cable move, by exercise id (v0.30). Shown on the Tips sheet
+  // under the figure. kind picks the icon and name in app.js (ATTACHMENTS); count 2 = one each side.
+  attachments: {
+    "tricep-pushdown":     { kind: "rope", why: "Split the ends past your thighs at the bottom for a full lockout. A short straight bar lets you go heavier if the rope stalls." },
+    "cable-oh-tricep-ext": { kind: "rope", why: "The ends pass either side of your head and split at lockout. A bar would hit you on the way down." },
+    "face-pulls":          { kind: "rope", why: "The only attachment that lets your hands split past your ears." },
+    "cable-crunch":        { kind: "rope", why: "Hold the ends beside your ears so the arms stay out of it." },
+    "wide-lat-pulldown":   { kind: "lat-bar", why: "The long bar with bent ends. Hands just outside the bends." },
+    "seated-cable-row":    { kind: "neutral-bar", why: "The medium one, hands about shoulder width, palms facing each other. Lets the elbows drive back past the ribs. A V-handle works if it's taken." },
+    "cable-flyes":         { kind: "d-handle", count: 2, why: "One on each side, pulleys at chest height." },
+    "pallof-press":        { kind: "d-handle", why: "One handle, both hands wrapped around it, pulley at chest height." },
+  },
+
   workouts: {
     // =========================================================
     // PUSH A — POWER
