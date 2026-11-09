@@ -485,6 +485,9 @@ Store.saveActiveWorkout({
   // jumping a version. Add a new entry at the top for every release that has
   // notes; a release without notes adds nothing and shows nothing.
   const RELEASES = [
+    { id: 'v0.30.1', items: [
+      ['Chest-supported row', 'Now counted as a dumbbell move: enter one dumbbell and the total for both hands shows under it.'],
+    ] },
     { id: 'v0.30', items: [
       ['Second camera angle', 'Some demos now have a second view. Tap SIDE, FRONT, ABOVE, BEHIND or SPOTTER in the corner of the figure: push-ups, the bench presses, overhead press, squats, pull-ups, pulldowns, face pulls, leg press and more.'],
       ['Cable attachments', 'Cable moves now say which attachment to clip on, and why, right under the demo.'],
@@ -515,8 +518,9 @@ Store.saveActiveWorkout({
 
   // 'v0.28' -> 28, 'v1.2' -> 1002. Anything else -> -1 (unknown stamp).
   function releaseNum(id) {
-    const m = /^v(\d+)\.(\d+)$/.exec(String(id || ''));
-    return m ? Number(m[1]) * 1000 + Number(m[2]) : -1;
+    // v0.30 and v0.30.1 both parse; the patch number orders within a release.
+    const m = /^v(\d+)\.(\d+)(?:\.(\d+))?$/.exec(String(id || ''));
+    return m ? (Number(m[1]) * 1000 + Number(m[2])) * 1000 + Number(m[3] || 0) : -1;
   }
 
   // The releases this phone hasn't acknowledged, newest first. No stamp, or one

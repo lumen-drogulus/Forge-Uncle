@@ -285,6 +285,7 @@ const FORGE_DATA = {
           rest: 60,
           restLabel: "60 sec",
           weightMode: "free",
+          pair: true,            // two dumbbells: log one, total shown (v0.28)
           tier: 2,
           image: "chest-supported-row.png",
           video: "https://www.youtube.com/results?search_query=chest+supported+row+form",
@@ -1705,6 +1706,7 @@ const FORGE_DATA = {
           rest: 60,
           restLabel: "60 sec",
           weightMode: "free",
+          pair: true,            // two dumbbells: log one, total shown (v0.28)
           tier: 1,
           image: "chest-supported-row.png",
           video: "https://www.youtube.com/results?search_query=chest+supported+row+form",
