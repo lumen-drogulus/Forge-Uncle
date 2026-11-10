@@ -539,6 +539,13 @@ function solve3(spec) {
   // spec.headBack: pull the head straight back (cm), as when a bar passes the face
   J.neck = a3(T(B.neck / B.trunk, 0, -1), m3(J.antTop, -(spec.headBack || 0)));
   J.headDir = tilt3(J.sTop, m3(J.antTop, -1), spec.head || 0);
+  // spec.headSide: lateral neck flexion in degrees, the ear toward the body's right shoulder (+)
+  // or left shoulder (-). Skipped when absent, so every other figure is untouched.
+  if (spec.headSide) {
+    const hl = J.latTop || lat, f = spec.headSide * D2R, h0 = J.headDir;
+    J.headDir = n3(a3(m3(h0, Math.cos(f)), m3(hl, Math.sin(f))));
+    J.headLat = n3(s3(m3(hl, Math.cos(f)), m3(h0, Math.sin(f))));
+  }
   J.head = a3(J.neck, m3(J.headDir, 17));
   for (const [S, sg] of [["R", 1], ["L", -1]]) {
     // spec.shAnt: shoulder joints moved toward the front of the chest (cm), for
@@ -598,7 +605,7 @@ function draw3D(J, cam, mus, items = [], ghost = false) {
   // head and muscles so these figures match the flat side-view ones exactly
   const sideOn = Math.abs(d3(J.lat, cam.toCam)) > 0.9;
   const farOf = S => d3(m3(J.lat, S === "R" ? 1 : -1), cam.toCam) < -0.7;
-  const latTop = J.latTop || J.lat;
+  const latTop = J.headLat || J.latTop || J.lat;
   const face = n3(x3(latTop, J.headDir));
   const out3s = S => m3(J.lat, S === "R" ? 1 : -1);
   // which flank (+1/-1, in spindle terms) of the projected segment A-B faces world direction w
@@ -655,6 +662,8 @@ function draw3D(J, cam, mus, items = [], ghost = false) {
       if (mus.neck) K.muscle("neck", spindle(a, b, 5.4, 5.2, -0.1, 1.05, sd, 1.3));
       if (mus.neckBack) K.muscle("neckBack", spindle(a, b, 5.4, 5.2, -0.1, 1.05, -sd, 1.3));
     }
+    // one flank of the neck (lateral flexion): neckSideR / neckSideL light the side toward that shoulder
+    for (const [S, sg] of [["R", 1], ["L", -1]]) if (mus["neckSide" + S]) K.muscle("neckSide" + S, spindle(a, b, 5.4, 5.2, -0.1, 1.05, sideTo(a, b, m3(J.lat, sg)), 1.3));
   }, "neck");
   item(D(J.head), () => {
     if (sideOn) {

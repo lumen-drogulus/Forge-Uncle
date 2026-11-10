@@ -485,6 +485,13 @@ Store.saveActiveWorkout({
   // jumping a version. Add a new entry at the top for every release that has
   // notes; a release without notes adds nothing and shows nothing.
   const RELEASES = [
+    { id: 'v0.31', items: [
+      ['Neck work with weight', 'The hand-press isometrics are off the six main days. Neck Flexion is on both push days, Neck Extension on both pull days and a new Side Neck Raise on both leg days. Start at bodyweight, then a 5 lb plate in a towel.'],
+      ['New demos', 'Reverse Crunch, Decline Plate Crunch and Side Neck Raise each have an animated demo.'],
+    ] },
+    { id: 'v0.30.2', items: [
+      ['Cable crunch replaced', 'Three moves take its place: Reverse Crunch on Push A, Pallof Press on Legs A and Decline Plate Crunch on Back & Core.'],
+    ] },
     { id: 'v0.30.1', items: [
       ['Chest-supported row', 'Now counted as a dumbbell move: enter one dumbbell and the total for both hands shows under it.'],
     ] },

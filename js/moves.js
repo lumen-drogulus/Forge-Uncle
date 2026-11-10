@@ -4362,6 +4362,182 @@ const cuePath = (pts, on) => pth("M" + pts.map(P2).join("L"), "cue" + (on ? " on
 })();
 
 /* =========================================================
+   v0.31 · Reverse crunch, decline plate crunch, side neck raise
+   The two crunches replace the cable crunch (v0.30.2); the side
+   neck raise is the loaded lateral move on the leg days.
+   ========================================================= */
+
+/* ---- Reverse crunch: on the back, knees bent to 90. The pelvis curls up off the floor
+   and the knees come toward the chest; the shoulders and head never leave the floor ---- */
+(() => {
+  const TOP = [-B.trunk, 10, 0];                      // top of the trunk: planted, so the pelvis is what moves
+  // pelvis and spine for a curl of c degrees that ends flat at TOP
+  const trunkOf = c => {
+    const k = Math.max(c, 0.02) * D2R, s = [-Math.cos(k), -Math.sin(k), 0], ant = [-Math.sin(k), Math.cos(k), 0];
+    return { s, pel: s3(TOP, a3(m3(s, B.trunk * Math.sin(k) / k), m3(ant, B.trunk * (1 - Math.cos(k)) / k))) };
+  };
+  // th: thigh from vertical toward the feet; kn: knee interior angle
+  const legOf = (hip, th, kn) => {
+    const knee = a3(hip, [B.thigh * Math.sin(th * D2R), B.thigh * Math.cos(th * D2R), 0]);
+    const ph = th + 180 - kn, sd = [Math.sin(ph * D2R), Math.cos(ph * D2R), 0];
+    return { knee, ankle: a3(knee, m3(sd, B.shin)), foot: [Math.sin((ph - 90) * D2R), Math.cos((ph - 90) * D2R), 0], sole: sd, pole: [0, 1, 0] };
+  };
+  // hands flat on the floor beside the hips: fixed points, so they cannot slide as the pelvis rolls
+  const base = solve3({ pelvis: [0, 10, 0], spine: [-1, 0, 0], lat: SUPINE_LAT, legs: { R: legOf([0, 10, -8.6], 0, 90), L: legOf([0, 10, 8.6], 0, 90) },
+    arms: { R: { at: [0, 0, 0], pole: [0, -1, 0] }, L: { at: [0, 0, 0], pole: [0, -1, 0] } } });
+  const HAND = {};
+  for (const Sd of ["R", "L"]) {
+    const sh = base["sh" + Sd], ou = out3(base, Sd), drop = sh[1] - 3.6, Lw = B.ua + B.fa - 2.4;
+    HAND[Sd] = a3(sh, a3([Math.sqrt(Lw * Lw - drop * drop - 16), -drop, 0], m3(ou, 4)));
+  }
+  const spec = p => {
+    const t = trunkOf(p.c);
+    return { pelvis: t.pel, spine: t.s, curl: Math.max(p.c, 0.02), lat: SUPINE_LAT, head: 0,
+      legs: { R: legOf(a3(t.pel, [0, 0, -8.6]), p.th, p.kn), L: legOf(a3(t.pel, [0, 0, 8.6]), p.th, p.kn) },
+      // straight arms through a designed elbow (no IK, so nothing can flip as the shoulders settle)
+      arms: J => { const o = {}; for (const Sd of ["R", "L"]) { const sh = J["sh" + Sd], u = n3(s3(HAND[Sd], sh));
+        o[Sd] = { at: HAND[Sd], elbow: a3(sh, m3(u, B.ua)), pole: [0, 1, 0], wrist: true, hand: [1, 0, 0] }; } return o; } };
+  };
+  sideMove({
+    id: "reverse-crunch", frame: { k: 1.42, cx: 132, cy: 208 }, shadowR: 62, shadowX: -24, shadowFlat: 0.1,
+    keys: { down: { c: 1, th: 10, kn: 92 }, up: { c: 38, th: -54, kn: 64 } }, ghostKey: "up",
+    seq: [
+      { label: "Curl up", dur: 1.2, from: "down", to: "up", ease: "inOut", effort: 1 },
+      { label: "Squeeze", dur: 0.5, from: "up", to: "up", effort: 1 },
+      { label: "3 counts down", dur: 3, from: "up", to: "down", ease: "inOut", effort: 0.7 },
+      { label: "Reset", dur: 0.4, from: "down", to: "down", effort: 0.2 },
+    ],
+    muscles: { core: 1 },
+    spec,
+    draw(J, p, ctx, P) {
+      const up = p.c > 34, pel = P(J.pelvis), fl = P([J.pelvis[0], 0.6, 0]);
+      const lo = P([-14, 0.6, 0]), hi = P([12, 0.6, 0]), hd = P(J.head);
+      return {
+        back: [pth(`M${P2(lo)}L${P2(hi)}`, "cue" + (up ? " on" : ""), "stroke-dasharray:none;stroke-width:1.6"), cueLine([fl[0], fl[1] - 2], [pel[0], pel[1] + 9], up)],
+        labels: [
+          { at: [(lo[0] + hi[0]) / 2 + 6, lo[1] + 13], text: "PELVIS OFF THE FLOOR", on: up, anchor: "middle" },
+          { at: [hd[0] + 2, hd[1] - 22], text: "HEAD STAYS DOWN", on: false, anchor: "middle" },
+          { at: [P(J.kneeL)[0] + 30, P([0, 96, 0])[1]], text: ctx.phase === "3 counts down" ? "NO SWINGING" : "", on: true, anchor: "middle" },
+        ],
+      };
+    },
+  });
+})();
+
+/* ---- Decline plate crunch: feet hooked, plate hugged to the chest. The ribs curl toward the
+   pelvis and the low back stays on the pad; the lowering stops short of lying flat ---- */
+(() => {
+  const DEC = 22, PEL = [26, 62, 0];
+  const S0 = [-Math.cos(DEC * D2R), -Math.sin(DEC * D2R), 0], N0 = [-Math.sin(DEC * D2R), Math.cos(DEC * D2R), 0];   // down the pad / out of it
+  const KNEE = [66, 76], ANK = [75, 36];
+  const legs = {};
+  for (const [Sd, z] of [["R", -9], ["L", 9]]) legs[Sd] = { ankle: [ANK[0], ANK[1], z], pole: [0.3, 1, 0], foot: n3([0.92, 0.4, 0]), sole: n3([0.4, -0.92, 0]) };
+  const OFF = 11.6;                                    // spine line to the surface of the pad
+  const padPt = (t, d) => a3(a3(PEL, m3(S0, t * B.trunk)), m3(N0, -(OFF + d)));
+  const spec = p => ({ pelvis: PEL, spine: S0, curl: p.c, lat: SUPINE_LAT, head: -6, legs,
+    // arms crossed over the plate, hands on its face
+    arms: J => { const o = {};
+      for (const [Sd, t, l] of [["R", 0.64, -5], ["L", 0.8, 5]]) {
+        const ou = out3(J, Sd);
+        o[Sd] = { at: J.T(t, l, 17.2), pole: a3(a3(m3(ou, 1), m3(J.s, -0.7)), m3(J.ant, -0.5)), wrist: true, hand: n3(a3(m3(ou, -1), m3(J.sTop, 0.25))) };
+      }
+      return o; } });
+  sideMove({
+    id: "decline-plate-crunch", frame: { k: 1.3, cx: 162, cy: 198 }, shadowR: 66, shadowX: 14,
+    keys: { down: { c: 6 }, up: { c: 54 } }, ghostKey: "up",
+    seq: [
+      { label: "Curl", dur: 1.2, from: "down", to: "up", ease: "inOut", effort: 1 },
+      { label: "Pause", dur: 0.5, from: "up", to: "up", effort: 1 },
+      { label: "3 counts down", dur: 3, from: "up", to: "down", ease: "inOut", effort: 0.75 },
+      { label: "Hover", dur: 0.4, from: "down", to: "down", effort: 0.5 },
+    ],
+    muscles: { core: 1 },
+    spec,
+    draw(J, p, ctx, P, cam) {
+      const yF = P([0, 0, 0])[1];
+      // pad under the back, knee roller, ankle roller, frame to the floor
+      const q = [[-0.3, 0], [1.42, 0], [1.42, 6], [-0.3, 6]].map(([t, d]) => P(padPt(t, d)));
+      const hiEnd = P(padPt(-0.3, 6)), loEnd = P(padPt(1.36, 6));
+      const kR = P([KNEE[0] - 3, KNEE[1] - 10.5, 0]), aR = P([ANK[0] + 8.6, ANK[1] + 1.5, 0]);
+      const frame = pth(`M${P2(loEnd)}V${r1(yF)}M${P2(hiEnd)}L${P2(kR)}L${P2(aR)}M${P2(kR)}L${r1(kR[0] + 4)} ${r1(yF)}`, "line-dim");
+      const back = [frame, pth(roundRect(loEnd[0] - 8, yF - 3, kR[0] - loEnd[0] + 22, 3, 1), "iron-dim"), pth(poly(q), "iron"), pth(circle(kR, 5.2), "iron"), pth(circle(aR, 4.4), "iron")];
+      // plate flat on the chest, seen edge-on; it rides the curl
+      const c0 = J.T(0.5, 0, 12.6), c1 = J.T(0.94, 0, 12.6), n = J.aAt(0.72);
+      const pq = [c0, c1, a3(c1, m3(n, 3.2)), a3(c0, m3(n, 3.2))].map(P);
+      const plate = { depth: cam.depth(J.T(0.72, 0, 13)) + 4, tag: "plate", els: [pth(poly(pq), "iron")] };
+      const top = p.c > 50, low = p.c < 9;
+      const sh = P(J.shoulder), gap = P(padPt(0.94, 0));
+      const pc = P(J.T(0.72, 0, 13));
+      return {
+        back: back.concat([cueLine(P(padPt(0.3, -0.5)), P(padPt(1.3, -0.5)), low)]),
+        items: [plate],
+        labels: [
+          { at: [pc[0] - 6, pc[1] - 44], text: "RIBS TO PELVIS", on: top, anchor: "middle" },
+          { at: [P(padPt(0.9, 0))[0], yF + 15], text: "STOP SHORT OF FLAT", on: low, anchor: "middle" },
+          { at: [P([KNEE[0], 0, 0])[0] + 8, P([0, 112, 0])[1]], text: "PLATE ON THE CHEST", on: false, anchor: "middle" },
+        ],
+      };
+      void sh;
+    },
+  });
+})();
+
+/* ---- Side neck raise: lying on one side, bottom shoulder on the bench, head off the end.
+   The ear sinks toward the floor, then lifts toward the top shoulder; the shoulders stay put ---- */
+(() => {
+  const TOP = 44, cam = camera3(7, 150, 258, 0);
+  const PEL = [-34, TOP + 17.4, 0], S0 = n3([1, 0.1, 0]), DOWN = [0, -1, 0];      // lat points at the floor: lying on the right side, chest to the camera
+  const legs = {
+    R: { ankle: [PEL[0] - 74, TOP + 5.6, 12], pole: [0.2, 0, 1], foot: n3([0.15, 0, 1]), sole: [-1, 0, 0] },
+    L: { ankle: [PEL[0] - 66, TOP + 15.5, 22], pole: [0.2, 0.1, 1], foot: n3([0.15, 0, 1]), sole: [-1, 0, 0] },
+  };
+  const base = solve3({ pelvis: PEL, spine: S0, lat: DOWN, legs, arms: { R: { at: [0, 0, 0], pole: [0, -1, 0] }, L: { at: [0, 0, 0], pole: [0, -1, 0] } } });
+  const END = base.shR[0] + 5;
+  const arms = {
+    // bottom arm folded in front of the chest, hand on the pad; top arm resting along the side
+    R: { at: [base.shR[0] - 20, TOP + 2.4, 25], pole: [-0.6, -0.2, 1], wrist: true, hand: n3([-1, 0, 0.2]) },
+  };
+  // top arm lies straight along the upper side, hand on the hip (designed elbow)
+  { const sh = base.shL, u = n3(s3(base.T(0.02, -11.5, 5), sh));
+    arms.L = { at: a3(sh, m3(u, B.ua + B.fa - 1)), elbow: a3(sh, m3(u, B.ua)), pole: [0, 1, 0], wrist: true, hand: u }; }
+  const DN = 24, UP = -38;
+  wuFig({
+    id: "side-neck-raise", view: "FRONT · LYING", cam, frame: { k: 1.3, cx: 142, cy: 190 }, shadowR: 64, shadowX: -24, shadowFlat: 0.2,
+    keys: { down: { h: DN }, up: { h: UP } }, ghostKey: "up",
+    seq: [
+      { label: "Raise", dur: 1.4, from: "down", to: "up", ease: "inOut", effort: 1 },
+      { label: "Hold", dur: 0.5, from: "up", to: "up", effort: 1 },
+      { label: "3 counts down", dur: 3, from: "up", to: "down", ease: "inOut", effort: 0.7 },
+      { label: "Rest", dur: 0.5, from: "down", to: "down", effort: 0.2 },
+    ],
+    muscles: { neckSideL: 1 },
+    spec: p => ({ pelvis: PEL, spine: S0, lat: DOWN, head: 0, headSide: p.h, legs, arms }),
+    draw(J, p, ctx, P) {
+      const yF = P([0, 0, 0])[1], r = 27, nk = J.neck;
+      const dirAt = d => n3(a3(m3(J.sTop, Math.cos(d * D2R)), m3(J.lat, Math.sin(d * D2R))));
+      const arcA = P(a3(nk, m3(dirAt(DN), r))), arcB = P(a3(nk, m3(dirAt(UP), r)));
+      const up = p.h < UP + 6, hd = P(J.head);
+      // bench side-on: pad, legs, foot
+      const t = P([PEL[0] - 84, TOP, 0]), b = P([END, TOP - 6, 0]);
+      const bench = [
+        pth(`M${r1(t[0] + 12)} ${r1(b[1])}V${r1(yF)}M${r1(b[0] - 12)} ${r1(b[1])}V${r1(yF)}`, "line-dim"),
+        pth(roundRect(t[0] + 6, yF - 3, b[0] - t[0] - 12, 3, 1), "iron-dim"),
+        pth(roundRect(t[0], t[1], b[0] - t[0], b[1] - t[1], 2), "iron"),
+      ];
+      const shl = P(J.shL);
+      return {
+        back: bench.concat([pth(`M${P2(arcA)}A${r} ${r} 0 0 0 ${P2(arcB)}`, "cue" + (up ? " on" : ""))]),
+        labels: [
+          { at: [hd[0] + 2, P(a3(nk, m3(dirAt(UP), r)))[1] - 14], text: "EAR TO SHOULDER", on: up, anchor: "middle" },
+          { at: [(t[0] + b[0]) / 2, b[1] + 16], text: "SHOULDERS STILL", on: false, anchor: "middle" },
+          { at: [hd[0] + 4, P([0, TOP - 34, 0])[1]], text: ctx.phase === "3 counts down" ? "3 COUNTS DOWN" : "", on: true, anchor: "middle" },
+        ],
+      };
+    },
+  });
+})();
+
+/* =========================================================
    Angle presets (v0.30). A second camera on the figures whose
    side view hides the point of the move (grip width, elbow
    flare, stance, knee tracking). Each view is a complete figure:
