@@ -162,7 +162,225 @@
     const day = activeDay();
     const workout = FORGE_DATA.workouts[day.id];
     const size = (state.activeWorkoutLog && state.activeWorkoutLog.size) || state.workoutSize;
-    return exercisesFor(workout, size);
+    // v0.32: moves added mid-session ride at the end of the plan, in the
+    // order they were added, so every index still lines up with the log.
+    return exercisesFor(workout, size).concat(addedExercises());
+  }
+
+  // ===== ADDED EXERCISES AND CARDIO (v0.32) =====
+  // activeWorkoutLog.extras holds the ids added to this session from the
+  // workout list. An id the app no longer knows still gets a row, built from
+  // the log, so the list can never fall out of step with the logged sets.
+  function addedExercises() {
+    const log = state.activeWorkoutLog;
+    const ids = (log && log.extras) || [];
+    return ids.map(id => exDef(id) || {
+      id: id, name: ((log.exercises.find(e => e.id === id) || {}).name) || id,
+      sets: 1, reps: '-', rpe: '-', rest: 60, restLabel: '60 sec', weightMode: 'free', tip: '', video: ''
+    });
+  }
+
+  function isCardio(ex) { return !!ex && ex.trackMode === 'cardio'; }
+
+  // Every move the app knows, once each: cardio first, then grouped under
+  // the first workout that uses it.
+  function addCatalog() {
+    const seen = {};
+    const groups = [];
+    const cardio = FORGE_DATA.cardio || [];
+    if (cardio.length) groups.push({ label: 'Cardio', items: cardio });
+    cardio.forEach(e => { seen[e.id] = true; });
+    FORGE_DATA.cycleDays.concat(Object.values(FORGE_DATA.alternates || {})).forEach(d => {
+      const w = FORGE_DATA.workouts[d.id];
+      if (!w) return;
+      const items = (w.exercises || []).filter(e => {
+        if (seen[e.id]) return false;
+        seen[e.id] = true;
+        return true;
+      });
+      if (items.length) groups.push({ label: d.name, items: items });
+    });
+    return groups;
+  }
+
+  function openAddSheet() {
+    if (!state.activeWorkoutLog) return;
+    const inPlan = {};
+    activeExercises().forEach(e => { inPlan[e.id] = true; });
+    const esc = s => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+    const row = ex => {
+      const taken = inPlan[ex.id];
+      const sub = isCardio(ex) ? 'Time \u00b7 distance \u00b7 level' : `${ex.sets} \u00d7 ${shortReps(ex.reps)}`;
+      return `
+        <button class="pick-row add-row${taken ? ' taken' : ''}" data-name="${esc(ex.name.toLowerCase())}"
+                ${taken ? 'disabled' : `onclick="FORGE.addExercise('${ex.id}')"`}>
+          <span class="pick-body">
+            <span class="pick-name">${ex.name}</span>
+            <span class="pick-sub">${taken ? 'Already in today\u2019s list' : sub}</span>
+          </span>
+          <i class="ti ti-${taken ? 'check' : 'plus'}"></i>
+        </button>`;
+    };
+    document.getElementById('info-panel-content').innerHTML = `
+      <div class="info-panel-title">Add to today</div>
+      <input type="search" class="add-search" id="add-search" placeholder="Search moves" autocomplete="off"
+             enterkeyhint="search" oninput="FORGE.filterAdd(this.value)" aria-label="Search moves">
+      ${addCatalog().map(g => `
+        <div class="add-group">
+          <div class="sheet-section-label">${g.label}</div>
+          ${g.items.map(row).join('')}
+        </div>`).join('')}
+      <div class="sheet-note" id="add-empty" hidden>Nothing by that name.</div>
+    `;
+    showPanel('info-panel');
+  }
+
+  function filterAdd(q) {
+    const needle = String(q || '').trim().toLowerCase();
+    let any = false;
+    document.querySelectorAll('#info-panel-content .add-group').forEach(g => {
+      let shown = 0;
+      g.querySelectorAll('.add-row').forEach(r => {
+        const hit = !needle || r.dataset.name.indexOf(needle) !== -1;
+        r.hidden = !hit;
+        if (hit) shown++;
+      });
+      g.hidden = shown === 0;
+      if (shown) any = true;
+    });
+    const empty = document.getElementById('add-empty');
+    if (empty) empty.hidden = any;
+  }
+
+  function addExercise(id) {
+    const log = state.activeWorkoutLog;
+    const ex = exDef(id);
+    if (!log || !ex || activeExercises().some(e => e.id === id)) return;
+    if (!log.extras) log.extras = [];
+    log.extras.push(id);
+    log.exercises.push({ id: ex.id, name: ex.name, sets: [], completed: false, added: true });
+    persistWorkoutState();
+    dismissPanel();
+    state.workoutPhase = 'overview';
+    renderWorkoutView();
+  }
+
+  // Take back an added move, only while it has no sets. Later rows move up
+  // one, so the skipped list (which goes by position) moves with them.
+  function removeAdded(index) {
+    const log = state.activeWorkoutLog;
+    if (!log || !log.extras) return;
+    const k = index - (log.exercises.length - log.extras.length);
+    const entry = log.exercises[index];
+    if (k < 0 || !entry || entry.sets.length) return;
+    log.extras.splice(k, 1);
+    log.exercises.splice(index, 1);
+    state.skippedExercises = state.skippedExercises
+      .filter(i => i !== index).map(i => (i > index ? i - 1 : i));
+    state.currentExerciseIndex = 0;
+    state.currentSetIndex = 0;
+    persistWorkoutState();
+    renderWorkoutView();
+  }
+
+  // The second and third cardio boxes are named per machine in data.js.
+  function cardioNum(n) { return Math.round((Number(n) || 0) * 100) / 100; }
+  function cardioDisplay(ex, c) {
+    const parts = [];
+    if (c.min) parts.push(cardioNum(c.min) + ' min');
+    if (c.dist) parts.push(cardioNum(c.dist) + ' ' + ((ex.dist && ex.dist.unit) || 'mi'));
+    if (c.level) parts.push(ex.level && ex.level.unit === '%' ? cardioNum(c.level) + '%' : 'L' + cardioNum(c.level));
+    return parts.join(' \u00b7 ');
+  }
+
+  function renderCardio(el, ex, log, day, typeClass, plan) {
+    const editing = state.editingSetIndex !== null ? log.sets[state.editingSetIndex] : null;
+    const done = log.sets.length >= ex.sets && !editing;
+    const lastLog = lastExLog(ex.id, day.id);
+    const lastSet = lastLog ? lastLog.sets[lastLog.sets.length - 1] : null;
+    const pre = (editing && editing.cardio) || (lastSet && lastSet.cardio) || {};
+    const dist = ex.dist || { label: 'Distance', unit: 'mi' };
+    const level = ex.level || { label: 'Resistance', unit: 'level' };
+    const ticks = plan.map((p, i) => {
+      const d = state.activeWorkoutLog.exercises[i] && state.activeWorkoutLog.exercises[i].completed;
+      return `<span class="${d ? 'done' : i === state.currentExerciseIndex ? 'current' : ''}"></span>`;
+    }).join('');
+    const box = (id, label, unit, val, mode) => `
+            <div class="cardio-row">
+              <label class="load-label" for="${id}">${label}</label>
+              <input type="number" class="reps-input cardio-input" id="${id}" value="${val || ''}" inputmode="${mode}" enterkeyhint="done" placeholder="0" min="0" step="any">
+              <span class="cardio-unit">${unit}</span>
+            </div>`;
+
+    el.innerHTML = `
+      <div class="${typeClass}">
+        <div class="exercise-header">
+          <button class="back-btn" onclick="FORGE.backToOverview()" aria-label="Back to overview"><i class="ti ti-chevron-left"></i></button>
+          <div class="exercise-header-mid">
+            <div class="exercise-day-label">${day.name} \u00b7 ${day.label}</div>
+            <div class="exercise-position">Exercise ${state.currentExerciseIndex + 1} of ${plan.length}</div>
+          </div>
+          <button class="skip-btn" onclick="FORGE.skipExercise()">Skip <i class="ti ti-arrow-right"></i></button>
+        </div>
+        <div class="ex-progress">${ticks}</div>
+      </div>
+
+      <div class="${typeClass}">
+        <h1 class="exercise-name">${ex.name}</h1>
+        <div class="exercise-params">Cardio \u00b7 log what the machine shows</div>
+      </div>
+
+      ${ex.tip ? `<div class="cardio-tip">${ex.tip}</div>` : ''}
+
+      <div class="cardio-last">
+        <span class="stat-label">Last time</span>
+        <span class="cardio-last-v">${lastSet ? lastSet.display : '\u2014'}</span>
+      </div>
+
+      ${done ? `
+        <div class="set-indicators ${typeClass}">
+          ${log.sets.map((s, i) => `
+          <div class="set-indicator done" onclick="FORGE.editSet(${i})" style="cursor:pointer;">
+            <div class="si-label">Logged \u2713 \u00b7 tap to edit</div>
+            <div class="si-data">${s.display}</div>
+          </div>`).join('')}
+        </div>
+        <button class="save-set-btn ${typeClass}" onclick="FORGE.finishExercise()">
+          ${findNextExercise() !== -1 && findNextExercise() !== state.currentExerciseIndex ? 'Next exercise' : 'Back to the list'} <i class="ti ti-arrow-right"></i>
+        </button>
+      ` : `
+        <div class="load-block cardio-block ${typeClass}">
+          ${box('cardio-min', 'Time', 'min', pre.min, 'decimal')}
+          ${box('cardio-dist', dist.label, dist.unit, pre.dist, 'decimal')}
+          ${box('cardio-level', level.label, level.unit, pre.level, 'decimal')}
+        </div>
+        <button class="save-set-btn ${typeClass}" onclick="${editing ? 'FORGE.updateSet()' : 'FORGE.saveSet()'}">
+          ${editing ? 'Update' : 'Save'} ${ex.name.toLowerCase()}
+        </button>
+        ${editing ? `<button class="skip-btn cancel-edit-btn" onclick="FORGE.cancelEdit()">Cancel edit</button>` : ''}
+      `}
+    `;
+  }
+
+  // One cardio entry: time, distance, level. No reps and no load, so it stays
+  // out of records and out of the rep totals. idx null = new, else the edit.
+  function saveCardio(ex, log, idx) {
+    const read = id => {
+      const el = document.getElementById(id);
+      const v = el ? parseFloat(el.value) : NaN;
+      return isFinite(v) && v > 0 ? cardioNum(v) : 0;
+    };
+    const c = { min: read('cardio-min'), dist: read('cardio-dist'), level: read('cardio-level') };
+    if (!c.min && !c.dist) {
+      const first = document.getElementById('cardio-min');
+      if (first) first.focus();
+      return;
+    }
+    const set = { weight: 0, entered: null, reps: 0, repsDisplay: '', display: cardioDisplay(ex, c), timestamp: Date.now(), cardio: c };
+    if (idx === null) { log.sets.push(set); state.currentSetIndex++; }
+    else { log.sets[idx] = set; state.editingSetIndex = null; }
+    renderExercise(document.getElementById('main-content'));
+    persistWorkoutState();
   }
 
   function setWorkoutSize(size) {
@@ -485,6 +703,11 @@ Store.saveActiveWorkout({
   // jumping a version. Add a new entry at the top for every release that has
   // notes; a release without notes adds nothing and shows nothing.
   const RELEASES = [
+    { id: 'v0.32', items: [
+      ['Add an exercise', 'On the workout list, tap Add exercise to put any move in the app on today\u2019s session. It counts toward that move\u2019s history and records like any other set.'],
+      ['Cardio', 'Treadmill, Stair Stepper, Bike and Elliptical are at the top of that list. Log the time, the distance and the level.'],
+      ['Vibration switch', 'Settings, under the rest alert volume: turn the rest-end buzz off or back on.'],
+    ] },
     { id: 'v0.31', items: [
       ['Neck work with weight', 'The hand-press isometrics are off the six main days. Neck Flexion is on both push days, Neck Extension on both pull days and a new Side Neck Raise on both leg days. Start at bodyweight, then a 5 lb plate in a towel.'],
       ['New demos', 'Reverse Crunch, Decline Plate Crunch and Side Neck Raise each have an animated demo.'],
@@ -861,8 +1084,8 @@ Store.saveActiveWorkout({
         <div class="mt-row${done ? ' done' : ''}">
           <span class="mt-n">${String(i + 1).padStart(2, '0')}</span>
           <span class="mt-name"><span class="mt-name-text">${ex.name}</span>${tag}</span>
-          <span class="mt-sr">${ex.sets}×${shortReps(ex.reps)}</span>
-          <span class="mt-rest">${shortRest(ex.restLabel)}</span>
+          <span class="mt-sr">${isCardio(ex) ? 'Cardio' : ex.sets + '×' + shortReps(ex.reps)}</span>
+          <span class="mt-rest">${isCardio(ex) ? '\u2014' : shortRest(ex.restLabel)}</span>
         </div>`;
     }).join('');
     return `
@@ -1376,9 +1599,13 @@ Store.saveActiveWorkout({
       </div>
     `;
 
-    activeExercises().forEach((ex, i) => {
+    const plan = activeExercises();
+    const firstAdded = plan.length - ((state.activeWorkoutLog.extras || []).length);
+    plan.forEach((ex, i) => {
       const log = state.activeWorkoutLog.exercises[i];
       const done = log.completed;
+      const added = i >= firstAdded;
+      const removable = added && log.sets.length === 0;
       const skipped = state.skippedExercises.includes(i);
       let numCls = done ? 'wo-num done' : 'wo-num';
       let itemCls = done ? 'wo-item completed' : skipped ? 'wo-item skipped' : 'wo-item';
@@ -1387,9 +1614,10 @@ Store.saveActiveWorkout({
         <div class="${itemCls}" onclick="FORGE.goToExercise(${i})">
           <div class="${numCls}">${done ? '<i class="ti ti-check" style="font-size:14px"></i>' : String(i + 1).padStart(2, '0')}</div>
           <div class="wo-item-info">
-            <div class="wo-item-name">${ex.name}${ex.isFinisher ? `<span class="finisher-tag">Finisher</span>` : ex.isPrimer ? `<span class="primer-tag">Primer</span>` : ''}</div>
-            <div class="wo-item-detail">${ex.sets} × ${shortReps(ex.reps)} · rest ${shortRest(ex.restLabel)}</div>
+            <div class="wo-item-name">${ex.name}${added ? `<span class="primer-tag added-tag">Added</span>` : ex.isFinisher ? `<span class="finisher-tag">Finisher</span>` : ex.isPrimer ? `<span class="primer-tag">Primer</span>` : ''}</div>
+            <div class="wo-item-detail">${isCardio(ex) ? (log.sets.length ? log.sets[log.sets.length - 1].display : 'Time · distance · level') : `${ex.sets} × ${shortReps(ex.reps)} · rest ${shortRest(ex.restLabel)}`}</div>
           </div>
+          ${removable ? `<button class="wo-remove" onclick="event.stopPropagation();FORGE.removeAdded(${i})" aria-label="Remove ${ex.name}"><i class="ti ti-x"></i></button>` : ''}
           <div class="wo-item-status"><i class="ti ti-chevron-right"></i></div>
         </div>
       `;
@@ -1406,6 +1634,7 @@ Store.saveActiveWorkout({
         <button class="skip-btn" onclick="FORGE.endWorkout()">End</button>
       </div>
       <div class="workout-overview-list ${typeClass}">${items}</div>
+      <button class="add-ex-btn" onclick="FORGE.openAddSheet()"><i class="ti ti-plus"></i> Add exercise</button>
       ${allDone ? `<button class="save-set-btn ${typeClass}" onclick="FORGE.completeWorkout()">Complete workout <i class="ti ti-check"></i></button>` : ''}
     `;
   }
@@ -1555,6 +1784,7 @@ Store.saveActiveWorkout({
     const log = state.activeWorkoutLog.exercises[state.currentExerciseIndex];
     const typeClass = toneClass(day);
     const totalExercises = plan.length;
+    if (isCardio(ex)) { renderCardio(el, ex, log, day, typeClass, plan); return; }
 
     // Get previous data for this exercise
     const prevData = getPreviousExerciseData(ex.id, day.id);
@@ -1762,7 +1992,7 @@ Store.saveActiveWorkout({
           <div class="up-next-preview">
             <span class="up-next-label">Up next ›</span>
             <span class="up-next-name">${nextEx.name}${nextEx.isFinisher ? ' 🔥' : ''}</span>
-            <span class="up-next-detail">${nextEx.sets}×${shortReps(nextEx.reps)} · ${shortRest(nextEx.restLabel)}</span>
+            <span class="up-next-detail">${isCardio(nextEx) ? 'Cardio' : `${nextEx.sets}×${shortReps(nextEx.reps)} · ${shortRest(nextEx.restLabel)}`}</span>
           </div>
         ` : ''}
 
@@ -1781,6 +2011,7 @@ Store.saveActiveWorkout({
     const workout = FORGE_DATA.workouts[day.id];
     const ex = activeExercises()[state.currentExerciseIndex];
     const log = state.activeWorkoutLog.exercises[state.currentExerciseIndex];
+    if (isCardio(ex)) { saveCardio(ex, log, null); return; }
     const isBW = ex.weightMode === 'bw';
 
    let weight, reps, display, entered = null;
@@ -1862,6 +2093,7 @@ Store.saveActiveWorkout({
     const ex = activeExercises()[state.currentExerciseIndex];
     const log = state.activeWorkoutLog.exercises[state.currentExerciseIndex];
     const idx = state.editingSetIndex;
+    if (isCardio(ex)) { saveCardio(ex, log, idx); return; }
     const isBW = ex.weightMode === 'bw';
 
     let weight, reps, display, entered = null;
@@ -2356,12 +2588,30 @@ Store.saveActiveWorkout({
     };
   }
 
-  function getPreviousExerciseData(exerciseId, dayId) {
+  // The last time this move was logged: this workout day's latest session if
+  // it's in there, otherwise the most recent session of it on any day (v0.32),
+  // so a move added from the list still opens on what you did last.
+  function lastExLog(exerciseId, dayId) {
     const logs = Store.getLogs();
-    if (!logs[dayId] || logs[dayId].length === 0) return null;
-    const lastLog = logs[dayId][logs[dayId].length - 1];
-    const exLog = lastLog.exercises.find(e => e.id === exerciseId);
-    if (!exLog || exLog.sets.length === 0) return null;
+    const pick = entry => {
+      const e = ((entry && entry.exercises) || []).find(x => x && x.id === exerciseId);
+      return e && Array.isArray(e.sets) && e.sets.length ? e : null;
+    };
+    const dayLogs = logs[dayId] || [];
+    const here = dayLogs.length ? pick(dayLogs[dayLogs.length - 1]) : null;
+    if (here) return here;
+    let best = null, bestT = -Infinity;
+    Object.keys(logs).forEach(d => [].concat(logs[d] || []).forEach(entry => {
+      const e = pick(entry);
+      const t = Date.parse((entry && (entry.completedAt || entry.date)) || '');
+      if (e && isFinite(t) && t > bestT) { best = e; bestT = t; }
+    }));
+    return best;
+  }
+
+  function getPreviousExerciseData(exerciseId, dayId) {
+    const exLog = lastExLog(exerciseId, dayId);
+    if (!exLog) return null;
     const lastSet = exLog.sets[exLog.sets.length - 1];
     const maxWeight = Math.max(...exLog.sets.map(set => set.weight));
     // On BW+ / BW- moves, weight is total load (bodyweight plus or minus the
@@ -2381,11 +2631,8 @@ Store.saveActiveWorkout({
 
   // ===== TIME-BASED EXERCISE HELPERS =====
   function getTimePreviousData(exerciseId, dayId) {
-    const logs = Store.getLogs();
-    if (!logs[dayId] || logs[dayId].length === 0) return null;
-    const lastLog = logs[dayId][logs[dayId].length - 1];
-    const exLog = lastLog.exercises.find(e => e.id === exerciseId);
-    if (!exLog || exLog.sets.length === 0) return null;
+    const exLog = lastExLog(exerciseId, dayId);
+    if (!exLog) return null;
     const bestTime = Math.max(...exLog.sets.map(s => parseInt(s.reps) || 0));
     return {
       display: bestTime + 's',
@@ -2425,7 +2672,7 @@ Store.saveActiveWorkout({
       const ex = (FORGE_DATA.workouts[wid].exercises || []).find(e => e.id === id);
       if (ex) return ex;
     }
-    return null;
+    return (FORGE_DATA.cardio || []).find(e => e.id === id) || null;
   }
 
   // One logged set, read the way it was shown when it was logged. On sets from
@@ -2978,7 +3225,7 @@ Store.saveActiveWorkout({
   // refuse to vibrate a page that isn't showing.
   function buzzCountdown(msLeft) {
     try {
-      if (!navigator.vibrate) return;
+      if (!navigator.vibrate || !restVibrateOn()) return;
       const marks = [3000, 2000, 1000, 0].map(k => msLeft - k).filter(a => a >= 0);
       const pattern = [0];
       let cursor = 0;
@@ -3783,8 +4030,13 @@ Store.saveActiveWorkout({
               oninput="FORGE.setRestVolume(this.value)" onchange="FORGE.testRestAlert()" aria-describedby="settings-restvol-help">
             <button class="action-btn vol-test" onclick="FORGE.testRestAlert()" aria-label="Play the rest alert"><i class="ti ti-volume"></i> Test</button>
           </div>
+          <div class="settings-row">
+            <span class="settings-k">Vibrate when rest ends</span>
+            <button class="action-btn vol-test vib-toggle${restVibrateOn() ? ' on' : ''}" id="settings-vib" onclick="FORGE.toggleRestVibrate()"
+              aria-pressed="${restVibrateOn()}" aria-label="Vibrate when rest ends"><i class="ti ti-device-mobile-vibration"></i> <span id="settings-vib-val">${restVibrateOn() ? 'On' : 'Off'}</span></button>
+          </div>
           <div class="settings-help" id="settings-restvol-help">
-            Saves as you slide it. 0 turns the sound off; the phone still vibrates.
+            Both save as you change them. 0 turns the sound off. Vibration is its own switch, and only buzzes while the screen is on.
           </div>
         </div>
         <button class="start-btn" onclick="FORGE.saveSettings()">Save settings</button>
@@ -3818,6 +4070,20 @@ Store.saveActiveWorkout({
     const lab = document.getElementById('settings-restvol-val');
     if (lab) lab.textContent = volLabel(v);
     if (restOut) restOut.gain.value = restGain(v);
+  }
+  // v0.32: the rest-end vibration has its own switch. Absent = on, so
+  // nobody's phone goes quiet just by updating.
+  function restVibrateOn() { return Store.getSettings().restVibrate !== false; }
+  function toggleRestVibrate() {
+    const settings = Store.getSettings();
+    const on = settings.restVibrate === false;
+    settings.restVibrate = on;
+    Store.saveSettings(settings);
+    try { if (navigator.vibrate) navigator.vibrate(on ? 120 : 0); } catch (e) {}
+    const btn = document.getElementById('settings-vib');
+    const val = document.getElementById('settings-vib-val');
+    if (btn) { btn.classList.toggle('on', on); btn.setAttribute('aria-pressed', String(on)); }
+    if (val) val.textContent = on ? 'On' : 'Off';
   }
   // The zero beeps at the current level, so the slider can be set by ear.
   function testRestAlert() {
@@ -4099,6 +4365,11 @@ Store.saveActiveWorkout({
     saveSettings,
     setRestVolume,
     testRestAlert,
+    toggleRestVibrate,
+    openAddSheet,
+    filterAdd,
+    addExercise,
+    removeAdded,
     exportData,
     clearData,
     clearToday,

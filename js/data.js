@@ -1881,6 +1881,49 @@ const FORGE_DATA = {
     }
 },
 
+  // Cardio machines (v0.32). Not part of any workout: they are added to a
+  // session from the workout list (Add exercise). One entry per session,
+  // logged as time plus two more numbers. dist and level name those two
+  // boxes for each machine, since a treadmill has incline, not resistance.
+  cardio: [
+    {
+      id: "cardio-treadmill",
+      name: "Treadmill",
+      trackMode: "cardio",
+      sets: 1, reps: "-", rpe: "-", rest: 0, restLabel: "-", weightMode: "free", tier: 1,
+      dist: { label: "Distance", unit: "mi" },
+      level: { label: "Incline", unit: "%" },
+      tip: "Log what the console shows when you step off. Incline is the treadmill's resistance: note the one you held longest."
+    },
+    {
+      id: "cardio-stair-stepper",
+      name: "Stair Stepper",
+      trackMode: "cardio",
+      sets: 1, reps: "-", rpe: "-", rest: 0, restLabel: "-", weightMode: "free", tier: 1,
+      dist: { label: "Floors", unit: "fl" },
+      level: { label: "Level", unit: "level" },
+      tip: "Stand tall and keep your weight off the rails: leaning on them takes the legs out of it."
+    },
+    {
+      id: "cardio-bike",
+      name: "Bike",
+      trackMode: "cardio",
+      sets: 1, reps: "-", rpe: "-", rest: 0, restLabel: "-", weightMode: "free", tier: 1,
+      dist: { label: "Distance", unit: "mi" },
+      level: { label: "Resistance", unit: "level" },
+      tip: "Seat height: a slight bend in the knee at the bottom of the pedal stroke."
+    },
+    {
+      id: "cardio-elliptical",
+      name: "Elliptical",
+      trackMode: "cardio",
+      sets: 1, reps: "-", rpe: "-", rest: 0, restLabel: "-", weightMode: "free", tier: 1,
+      dist: { label: "Distance", unit: "mi" },
+      level: { label: "Resistance", unit: "level" },
+      tip: "Push and pull the handles rather than just holding on, and keep your heels down."
+    }
+  ],
+
   // e1RM calculation using Epley formula
   // weight × (1 + reps / 30)
   calculateE1RM: function(weight, reps) {

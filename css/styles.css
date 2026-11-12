@@ -1644,3 +1644,70 @@ body.sandbox .header-date { display: none; }
 }
 .release-btn:focus-visible { outline: 2px solid var(--text-primary); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .release-overlay { animation: none; } .release-overlay.closing { transition: none; } }
+
+/* ===== v0.32: add an exercise, cardio, vibration switch ===== */
+.add-ex-btn {
+  width: 100%;
+  height: 48px;
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: none;
+  border: 1px dashed var(--border-light);
+  border-radius: var(--radius);
+  color: var(--text-secondary);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.add-ex-btn:active { background: var(--bg-elevated); }
+.add-ex-btn .ti { font-size: 16px; }
+.added-tag { color: var(--text-secondary); background: var(--bg-elevated); }
+.wo-remove {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 16px;
+  cursor: pointer;
+}
+.add-search {
+  width: 100%;
+  height: 44px;
+  margin: 2px 0 4px;
+  padding: 0 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  outline: none;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 16px;
+}
+.add-search:focus { border-color: var(--border-light); }
+.add-row .ti-plus { color: var(--text-muted); font-size: 16px; }
+.add-row.taken { cursor: default; }
+.add-row.taken .pick-name { color: var(--text-muted); }
+.add-row[hidden], .add-group[hidden] { display: none; }
+
+.cardio-tip { font-size: 13px; color: var(--text-secondary); }
+.cardio-last { display: flex; align-items: baseline; gap: 10px; padding: 8px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.cardio-last-v { font-family: var(--font-mono); font-size: 14px; color: var(--text-primary); }
+.cardio-block { gap: 14px; padding: 6px 0; }
+.cardio-row { display: grid; grid-template-columns: 1fr 132px 1fr; align-items: baseline; gap: 12px; }
+.cardio-row .load-label { text-align: right; }
+.cardio-input { width: 100%; }
+.cardio-unit { font-family: var(--font-mono); font-size: 12px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); }
+
+.vib-toggle { color: var(--text-muted); min-width: 92px; justify-content: center; }
+.vib-toggle.on { color: var(--text-primary); border-color: var(--border-light); }
