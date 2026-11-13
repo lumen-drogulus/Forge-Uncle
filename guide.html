@@ -6,9 +6,14 @@
 <meta name="theme-color" content="#0E0F11">
 <title>FORGE Field Manual</title>
 <link rel="icon" type="image/png" href="favicon-32.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
+  @font-face { font-family: 'Barlow Condensed'; font-weight: 600; font-display: swap; src: url('fonts/barlow-condensed-latin-600-normal.woff2') format('woff2'); }
+  @font-face { font-family: 'Barlow Condensed'; font-weight: 700; font-display: swap; src: url('fonts/barlow-condensed-latin-700-normal.woff2') format('woff2'); }
+  @font-face { font-family: 'Barlow'; font-weight: 400; font-display: swap; src: url('fonts/barlow-latin-400-normal.woff2') format('woff2'); }
+  @font-face { font-family: 'Barlow'; font-weight: 500; font-display: swap; src: url('fonts/barlow-latin-500-normal.woff2') format('woff2'); }
+  @font-face { font-family: 'Barlow'; font-weight: 600; font-display: swap; src: url('fonts/barlow-latin-600-normal.woff2') format('woff2'); }
+  @font-face { font-family: 'JetBrains Mono'; font-weight: 500; font-display: swap; src: url('fonts/jetbrains-mono-latin-500-normal.woff2') format('woff2'); }
+  @font-face { font-family: 'JetBrains Mono'; font-weight: 700; font-display: swap; src: url('fonts/jetbrains-mono-latin-700-normal.woff2') format('woff2'); }
   :root {
     --bg: #0E0F11; --surface: #121417; --card: #16181B; --elev: #1D2025;
     --rule: #23262B; --border: #2B2F35;
@@ -149,12 +154,13 @@
 <section id="sizes">
   <div class="num">03</div>
   <h2>Sizes</h2>
-  <p>Every workout comes in three sizes. Each one is the smaller one plus more, so Light is always the core of the day.</p>
+  <p>Every workout comes in three sizes. Each one is the smaller one plus more, so Light is always the core of the day. On the six main days:</p>
   <div class="grid">
-    <div class="g-k">− Light</div><div>About 30 minutes. The essentials.</div>
-    <div class="g-k">✱ Normal</div><div>About 60 minutes. The standard day.</div>
-    <div class="g-k">+ Extended</div><div>About 85 minutes. Everything.</div>
+    <div class="g-k">− Light</div><div>About 60 minutes. The essentials.</div>
+    <div class="g-k">✱ Normal</div><div>About 85 minutes. The standard day.</div>
+    <div class="g-k">+ Extended</div><div>About 105 minutes. Two or three more moves: extra arm and forearm work on push and pull days, hamstrings, inner thigh and glutes on leg days.</div>
   </div>
+  <p>The <span class="cal">calisthenics</span> and <span class="core">Back &amp; Core</span> sessions run shorter: about 30, 55 and 80 minutes. The minutes are estimates; most people finish faster. The app remembers the last size you picked.</p>
   <div class="note">
     <span class="tag">Size locks at the start</span>
     <p>The start button names the size, for example <span class="k">START NORMAL ✱</span>. Read it before you tap. Once a workout starts, its size can't be changed.</p>
@@ -166,23 +172,27 @@
   <h2>A workout, start to finish</h2>
   <ol class="steps">
     <li>On Home, tap <span class="k">START WORKOUT</span>. Pick the size, then tap the start button.</li>
-    <li>The overview lists the warm-up, then the exercises. A <b>Primer</b> is an explosive move right after the warm-up; a <b>Finisher</b> closes the session. Tap any line to go to it; the order is a suggestion.</li>
+    <li>The overview lists the warm-up, then the exercises. A <b>Primer</b> is an explosive move right after the warm-up; a <b>Finisher</b> closes the session. Tap any line to go to it; the order is a suggestion. Tap a warm-up move to see it done.</li>
     <li>Do the warm-up, then tap <b>Warm-up complete</b>.</li>
     <li>On each exercise, set the weight with <span class="k">−5</span> <span class="k">+5</span> (or type it), set the reps with <span class="k">−1</span> <span class="k">+1</span>, and tap <b>Save set</b>.</li>
-    <li>The rest timer starts on its own. At three seconds left it beeps 3, 2, 1, then a high tone at zero; the phone also buzzes if the screen is on. <span class="k">+15s</span> buys more rest, <span class="k">Stop</span> ends it.</li>
+    <li>The rest timer starts on its own. At three seconds left it beeps 3, 2, 1, then three quick beeps at zero; the phone also buzzes if the screen is on. <span class="k">+15s</span> buys more rest, <span class="k">Stop</span> ends it. The beep volume and the buzz are in <b>Settings</b>.</li>
     <li>After the last set, tap <b>Next exercise</b>. When every exercise is done, the overview shows <b>Complete workout</b>.</li>
   </ol>
 
   <h3>On the exercise screen</h3>
   <ul class="dash">
-    <li><b>Last time</b> is the heaviest set from your previous session. That's today's target. <b>Best set</b> is your record. <b>Trend</b> appears after three sessions.</li>
-    <li><b>Tips</b> shows an animated figure of the movement with its form cues; tap the figure to pause it. <b>Demo</b> opens a video.</li>
+    <li><b>Last time</b> is the heaviest set from the last time you did this move, on any day. That's today's target. <b>Best set</b> is your record. <b>Trend</b> shows the change over your last three sessions; tap it for the full history.</li>
+    <li><b>Tips</b> shows an animated figure of the movement with its form cues; tap the figure to pause it. Some figures have a second camera angle: tap the label in the figure's corner (<span class="k">SIDE</span>, <span class="k">FRONT</span> and so on). Cable moves say which attachment to clip on, right under the figure. <b>Demo</b> opens a video.</li>
     <li><b>Plates</b> is a plate calculator: pick the bar, tap plates to load one per side, and it fills in the weight.</li>
     <li><b>Dumbbell moves</b> ask for the weight of <b>one</b> dumbbell, the number printed on it. The box reads <b>Per hand</b> and the total for both hands shows under it.</li>
-    <li>Made a typo? Tap the set's pill (<b>Set 2 ✓</b>), fix it, tap <b>Update set</b>.</li>
-    <li><b>Skip</b> moves on without logging. You can come back from the overview.</li>
+    <li>Made a typo? Tap the set's pill (<b>Set 2 ✓</b>), fix it, tap <b>Update set</b>. If the typo set a record, fixing it takes the record back too.</li>
+    <li><b>Skip</b> moves on without logging. You can come back from the overview, and the app picks up at the next set you haven't done.</li>
     <li>Timed holds (dead hangs, wall sits) show a stopwatch instead of reps. Tap it to start, tap again to stop; the seconds fill in.</li>
   </ul>
+
+  <h3>Adding a move or cardio</h3>
+  <p>Under the exercise list, <b>Add exercise</b> puts any move in the app on today's session, or a cardio machine (treadmill, stair stepper, bike, elliptical). It lands at the end of the list marked <b>ADDED</b> and counts toward that move's records and history. Until you log a set, the <span class="k">✕</span> on its line takes it back out. It's for today only; tomorrow's workout is unchanged.</p>
+  <p>Cardio asks for three numbers: the minutes, the distance, and the level or incline. Copy them off the machine's screen when you step off.</p>
 
   <h3>Leaving mid-workout</h3>
   <p>Answer the phone, switch apps, lock the screen: nothing is lost. Home shows a <b>RESUME</b> card that returns you to the exact set. To quit early, tap <b>End</b> on the overview; any sets you logged are kept.</p>
@@ -212,7 +222,8 @@
   <ul class="dash">
     <li>The first time you log an exercise, it becomes the record quietly. Celebrations start on the second session.</li>
     <li>A record is the heaviest real set, not an estimate. More reps at the same weight also counts.</li>
-    <li>The <b>PRs</b> tab lists every record, grouped into weighted, bodyweight and timed.</li>
+    <li>Edit a set or delete a workout and the record for that move is worked out again from what's logged, so a typo never leaves a record you can't beat.</li>
+    <li>The <b>PRs</b> tab lists every record, grouped into weighted, bodyweight and timed. Tap one to see that move over time: a chart of your top set or your volume, for the last 3 months, 6 months or all of it. Tap a point for that day's sets.</li>
   </ul>
 </section>
 
@@ -240,7 +251,7 @@
   <p>The file is called something like <span class="k">forge-backup-2026-10-06.txt</span>. The .txt is normal; Android won't share the other file type.</p>
   <p>Once you have a workout more than a week old, Home shows an amber <b>Back up now</b> bar until you do. After that it comes back every two weeks. Settings shows when you last did it.</p>
   <h3>Restoring</h3>
-  <p>New phone, or something went wrong: install FORGE (section 01), then <b>Settings</b> → <b>Import data from JSON</b> and pick the backup file. The .txt works.</p>
+  <p>New phone, or something went wrong: install FORGE (section 01), then <b>Settings</b> → <b>Restore from backup</b> and pick the backup file. The .txt works.</p>
   <div class="note">
     <span class="tag">The easy way to lose everything</span>
     <p>Clearing Chrome's <b>cookies and site data</b>, often done to "speed up the phone", erases FORGE along with it. Clearing the cache alone is fine. Back up first if you ever do the full clear.</p>

@@ -1,7 +1,7 @@
 // FORGE service worker
 // Bump CACHE_VERSION on every deploy. The activate handler deletes every
 // cache that doesn't match, which is what forces a clean slate.
-const CACHE_VERSION = 'v28';
+const CACHE_VERSION = 'v29';
 const CACHE_NAME = 'forge-' + CACHE_VERSION;
 
 const ASSETS = [
@@ -9,6 +9,17 @@ const ASSETS = [
   './index.html',
   './css/styles.css',
   './css/figures.css',
+  './css/icons.css',
+  './fonts/barlow-condensed-latin-500-normal.woff2',
+  './fonts/barlow-condensed-latin-600-normal.woff2',
+  './fonts/barlow-condensed-latin-700-normal.woff2',
+  './fonts/barlow-latin-400-normal.woff2',
+  './fonts/barlow-latin-500-normal.woff2',
+  './fonts/barlow-latin-600-normal.woff2',
+  './fonts/jetbrains-mono-latin-400-normal.woff2',
+  './fonts/jetbrains-mono-latin-500-normal.woff2',
+  './fonts/jetbrains-mono-latin-700-normal.woff2',
+  './fonts/jetbrains-mono-latin-800-normal.woff2',
   './js/config.js',
   './js/data.js',
   './js/figures.js',
@@ -19,8 +30,8 @@ const ASSETS = [
   './favicon-32.png'
 ];
 
-// App code must be fresh when the network is up. Everything else (images,
-// fonts, CDN icons) can come straight from cache.
+// App code must be fresh when the network is up. Everything else (icons,
+// fonts) can come straight from cache.
 function isAppCode(url) {
   return url.origin === self.location.origin &&
          /\.(html|js|css|json)$/.test(url.pathname);

@@ -1,4 +1,14 @@
-@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700;800&display=swap');
+/* Fonts are stored with the app (v0.34) so they work with no signal. Latin set only. */
+@font-face { font-family: 'Barlow Condensed'; font-style: normal; font-weight: 500; font-display: swap; src: url('../fonts/barlow-condensed-latin-500-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow Condensed'; font-style: normal; font-weight: 600; font-display: swap; src: url('../fonts/barlow-condensed-latin-600-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow Condensed'; font-style: normal; font-weight: 700; font-display: swap; src: url('../fonts/barlow-condensed-latin-700-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-style: normal; font-weight: 400; font-display: swap; src: url('../fonts/barlow-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-style: normal; font-weight: 500; font-display: swap; src: url('../fonts/barlow-latin-500-normal.woff2') format('woff2'); }
+@font-face { font-family: 'Barlow'; font-style: normal; font-weight: 600; font-display: swap; src: url('../fonts/barlow-latin-600-normal.woff2') format('woff2'); }
+@font-face { font-family: 'JetBrains Mono'; font-style: normal; font-weight: 400; font-display: swap; src: url('../fonts/jetbrains-mono-latin-400-normal.woff2') format('woff2'); }
+@font-face { font-family: 'JetBrains Mono'; font-style: normal; font-weight: 500; font-display: swap; src: url('../fonts/jetbrains-mono-latin-500-normal.woff2') format('woff2'); }
+@font-face { font-family: 'JetBrains Mono'; font-style: normal; font-weight: 700; font-display: swap; src: url('../fonts/jetbrains-mono-latin-700-normal.woff2') format('woff2'); }
+@font-face { font-family: 'JetBrains Mono'; font-style: normal; font-weight: 800; font-display: swap; src: url('../fonts/jetbrains-mono-latin-800-normal.woff2') format('woff2'); }
 
 /* ============================================================
    FORGE v0.16 · "Machined"
@@ -654,7 +664,6 @@ button { font: inherit; color: inherit; }
 .detail-exercise { padding: 6px 0 6px 10px; border-left: 1px solid var(--border); }
 .detail-exercise-header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .detail-exercise-name { font-size: 13px; color: #C9CDD2; }
-.detail-e1rm { font-family: var(--font-mono); font-size: 10px; color: var(--acc); }
 .detail-sets { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 2px; }
 .detail-set { display: flex; gap: 4px; align-items: baseline; }
 .detail-set-num { font-family: var(--font-mono); font-size: 9px; color: var(--text-muted); }
@@ -696,7 +705,6 @@ button { font: inherit; color: inherit; }
   text-transform: uppercase;
   margin-bottom: 12px;
 }
-.info-panel-image { width: 100%; border-radius: var(--radius); margin-bottom: 12px; display: block; }
 .info-panel-tip { font-size: 15px; line-height: 1.55; color: #C9CDD2; margin-bottom: 14px; }
 /* Cable attachment row (v0.30): steel line art, no day colour (nothing is happening there) */
 .info-attach { display: flex; align-items: center; gap: 14px; padding: 10px 0; margin: -4px 0 14px; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
