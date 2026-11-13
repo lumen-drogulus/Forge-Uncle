@@ -58,6 +58,7 @@ const FORGE_DATA = {
     "seated-cable-row":    { kind: "neutral-bar", why: "The medium one, hands about shoulder width, palms facing each other. Lets the elbows drive back past the ribs. A V-handle works if it's taken." },
     "cable-flyes":         { kind: "d-handle", count: 2, why: "One on each side, pulleys at chest height." },
     "pallof-press":        { kind: "d-handle", why: "One handle, both hands wrapped around it, pulley at chest height." },
+    "cable-curl-behind":   { kind: "d-handle", why: "One handle, pulley at the bottom. Train one arm, then the other." },
   },
 
   workouts: {
@@ -71,7 +72,7 @@ const FORGE_DATA = {
       label: "Power",
       goal: "Strength — heavy compounds, low reps, long rest",
       estimatedMinutes: 62,
-      minutesBySize: { light: 32, normal: 64, extended: 90 },
+      minutesBySize: { light: 64, normal: 90, extended: 109 },
       warmup: {
         name: "Dynamic Warm-Up",
         duration: "5 minutes",
@@ -86,7 +87,7 @@ const FORGE_DATA = {
         {
           id: "explosive-pushup",
           name: "Explosive Push-Ups",
-          tier: 2,
+          tier: 1,
           sets: 2,
           reps: "to failure",
           rpe: "-",
@@ -139,7 +140,7 @@ const FORGE_DATA = {
           rest: 60,
           restLabel: "60 sec",
           weightMode: "free",
-          tier: 3,
+          tier: 2,
           image: "incline-bb-press.png",
           video: "https://www.youtube.com/results?search_query=incline+barbell+bench+press+form",
           tip: "Bench at 30 degrees, not 45. Higher than that and it becomes a shoulder press with extra steps. Same setup as flat bench: shoulder blades pinned, feet planted, bar to the upper chest just below the collarbone.",
@@ -148,7 +149,7 @@ const FORGE_DATA = {
         {
           id: "weighted-dips-a",
           name: "Dips",
-          tier: 2,
+          tier: 1,
           sets: 3,
           reps: "6-8",
           rpe: "8",
@@ -163,7 +164,7 @@ const FORGE_DATA = {
         {
           id: "cg-bench-press",
           name: "Close-Grip Bench Press",
-          tier: 2,
+          tier: 1,
           sets: 3,
           reps: "8",
           rpe: "8",
@@ -173,6 +174,36 @@ const FORGE_DATA = {
           image: "cg-bench-press.png",
           video: "https://www.youtube.com/watch?v=nEF0bv2FW94",
           tip: "Hands roughly shoulder width. Tuck the elbows slightly. This is both a tricep builder and a bench press accessory. Controlled descent, no bouncing.",
+          isFinisher: false
+        },
+        {
+          id: "incline-db-curl",
+          name: "Incline Dumbbell Curl",
+          tier: 3,
+          sets: 3,
+          reps: "10-12",
+          rpe: "9",
+          rest: 45,
+          restLabel: "45 sec",
+          weightMode: "free",
+          pair: true,            // two dumbbells: log one, total shown (v0.28)
+          video: "https://www.youtube.com/results?search_query=incline+dumbbell+curl+proper+form",
+          tip: "Bench at about 60 degrees, head and shoulders back on the pad, arms hanging straight down behind the line of your body. Curl without letting the elbows swing forward, then lower for three counts to a full hang. The stretch at the bottom is the point, so go lighter than your standing curl.",
+          isFinisher: false
+        },
+        {
+          id: "db-lateral-raise",
+          name: "Dumbbell Lateral Raises",
+          tier: 3,
+          sets: 3,
+          reps: "12-15",
+          rpe: "8-9",
+          rest: 45,
+          restLabel: "45 sec",
+          weightMode: "free",
+          pair: true,            // two dumbbells: log one, total shown (v0.28)
+          video: "https://www.youtube.com/results?search_query=dumbbell+lateral+raise+proper+form",
+          tip: "Slight forward lean, thumbs tilted slightly down (like pouring water). Controlled up, slow down. Don't ego-lift these. Feel the burn at rep 10, fight for 15.",
           isFinisher: false
         },
         {
@@ -199,7 +230,7 @@ const FORGE_DATA = {
           rest: 45,
           restLabel: "45 sec",
           weightMode: "bw",
-          tier: 3,
+          tier: 2,
           image: "reverse-crunch.png",
           video: "https://www.youtube.com/results?search_query=reverse+crunch+proper+form",
           tip: "Lie on a bench or the floor, hands gripping the bench behind your head or flat beside your hips, knees bent to 90. Curl the pelvis up off the pad until the knees come toward the chest, then lower for three counts. The lift comes from the abs rolling the hips, not from swinging the legs. Head and neck stay down and relaxed.",
@@ -233,7 +264,7 @@ const FORGE_DATA = {
       label: "Power",
       goal: "Strength — heavy compounds, low reps, long rest",
       estimatedMinutes: 60,
-      minutesBySize: { light: 32, normal: 62, extended: 87 },
+      minutesBySize: { light: 62, normal: 87, extended: 106 },
       warmup: {
         name: "Dynamic Warm-Up",
         duration: "5 minutes",
@@ -285,7 +316,7 @@ const FORGE_DATA = {
           restLabel: "60 sec",
           weightMode: "free",
           pair: true,            // two dumbbells: log one, total shown (v0.28)
-          tier: 2,
+          tier: 1,
           image: "chest-supported-row.png",
           video: "https://www.youtube.com/results?search_query=chest+supported+row+form",
           tip: "Chest pinned to the pad, which takes the lower back out entirely. That is the point: all the pulling volume, none of the spinal load you already paid for on bent-over rows. Pull to the lower ribs, squeeze, control back.",
@@ -309,7 +340,7 @@ const FORGE_DATA = {
         {
           id: "bb-curls",
           name: "Barbell Curls",
-          tier: 2,
+          tier: 1,
           sets: 3,
           reps: "8",
           rpe: "8",
@@ -330,10 +361,39 @@ const FORGE_DATA = {
           rest: 45,
           restLabel: "45 sec",
           weightMode: "free",
-          tier: 3,
+          tier: 2,
           image: "preacher-curl.png",
           video: "https://www.youtube.com/results?search_query=preacher+curl+proper+form",
           tip: "Armpits into the top of the pad. Do not let the elbows drift down the slope. Full extension at the bottom, which is the whole reason to use this over standing curls, so resist the urge to cut the range short.",
+          isFinisher: false
+        },
+        {
+          id: "ez-skull-crusher",
+          name: "EZ-Bar Skull Crusher",
+          tier: 3,
+          sets: 3,
+          reps: "10-12",
+          rpe: "9",
+          rest: 45,
+          restLabel: "45 sec",
+          weightMode: "free",
+          video: "https://www.youtube.com/results?search_query=ez+bar+skull+crusher+proper+form",
+          tip: "Flat bench, EZ bar on the inner bends, arms tilted slightly back toward your head. Bend only at the elbows and lower the bar just past the top of your head, then press back up. Elbows stay pointed at the ceiling, not flared. Log the plates plus the bar.",
+          isFinisher: false
+        },
+        {
+          id: "rear-delt-flyes",
+          name: "Rear Delt Flyes",
+          tier: 3,
+          sets: 3,
+          reps: "12-15",
+          rpe: "9",
+          rest: 45,
+          restLabel: "45 sec",
+          weightMode: "free",
+          pair: true,            // two dumbbells: log one, total shown (v0.28)
+          video: "https://www.youtube.com/results?search_query=rear+delt+fly+proper+form",
+          tip: "Bent over, slight elbow bend, raise out to sides with a squeeze at top. Light weight, high control. Balances all the pressing in this program.",
           isFinisher: false
         },
         {
@@ -345,7 +405,7 @@ const FORGE_DATA = {
           rest: 45,
           restLabel: "45 sec",
           weightMode: "bw",
-          tier: 3,
+          tier: 2,
           image: "hanging-leg-raise.png",
           video: "https://www.youtube.com/results?search_query=hanging+leg+raise+proper+form",
           tip: "Start with knees tucked if straight legs make you swing. The goal is curling the pelvis up at the top, not just lifting the legs. No swinging. If you are using momentum, drop to bent knees and rebuild it.",
@@ -369,7 +429,7 @@ const FORGE_DATA = {
         {
           id: "dead-hang",
           name: "Dead Hangs",
-          tier: 2,
+          tier: 1,
           sets: 2,
           reps: "max time",
           rpe: "-",
@@ -396,7 +456,7 @@ const FORGE_DATA = {
       label: "Power",
       goal: "Strength — heavy compounds, low reps, long rest",
       estimatedMinutes: 58,
-      minutesBySize: { light: 33, normal: 61, extended: 85 },
+      minutesBySize: { light: 61, normal: 85, extended: 103 },
       warmup: {
         name: "Dynamic Warm-Up",
         duration: "5 minutes",
@@ -418,7 +478,7 @@ const FORGE_DATA = {
           rest: 45,
           restLabel: "45 sec",
           weightMode: "free",
-          tier: 2,
+          tier: 1,
           image: "kb-swings.png",
           video: "https://www.youtube.com/results?search_query=kettlebell+swing+hip+hinge+tutorial",
           tip: "Hip hinge, not a squat. The bell is thrown forward by the hips snapping, arms are just rope. Bell floats to chest height, no higher. Done right you will feel this in the glutes and hamstrings, which is exactly what you want awake before heavy squats.",
@@ -458,7 +518,7 @@ const FORGE_DATA = {
         {
           id: "leg-press",
           name: "Leg Press",
-          tier: 2,
+          tier: 1,
           sets: 3,
           reps: "8",
           rpe: "8",
@@ -468,6 +528,34 @@ const FORGE_DATA = {
           image: "leg-press.png",
           video: "https://www.youtube.com/watch?v=IZxyjW7MPJQ",
           tip: "Feet high and wide for more glute and hamstring emphasis, or centered for quad emphasis. Full range of motion, knees tracking over toes. Don't lock out at the top.",
+          isFinisher: false
+        },
+        {
+          id: "seated-leg-curl",
+          name: "Seated Leg Curl",
+          tier: 3,
+          sets: 3,
+          reps: "10-12",
+          rpe: "9",
+          rest: 45,
+          restLabel: "45 sec",
+          weightMode: "free",
+          video: "https://www.youtube.com/results?search_query=seated+leg+curl+proper+form",
+          tip: "Back flat against the pad, thigh pad snug just above the knees, roller on the lower calf. Curl all the way under the seat, then let it back up for three counts to nearly straight. Staying upright or leaning slightly forward keeps the hamstrings stretched, which is why this beats lying down.",
+          isFinisher: false
+        },
+        {
+          id: "hip-adduction",
+          name: "Hip Adduction Machine",
+          tier: 3,
+          sets: 3,
+          reps: "15-20",
+          rpe: "8-9",
+          rest: 45,
+          restLabel: "45 sec",
+          weightMode: "free",
+          video: "https://www.youtube.com/results?search_query=hip+adduction+machine+proper+form",
+          tip: "The squeeze-in machine, not the push-out one. Set the pads as wide as is comfortable, squeeze the knees together, pause a beat, and let them open slowly. Start light: the inner thigh strains easily when it isn't used to direct work.",
           isFinisher: false
         },
         {
@@ -494,7 +582,7 @@ const FORGE_DATA = {
           rest: 45,
           restLabel: "45 sec",
           weightMode: "bw",
-          tier: 2,
+          tier: 1,
           image: "hanging-leg-raise.png",
           video: "https://www.youtube.com/results?search_query=hanging+leg+raise+proper+form",
           tip: "Start with knees tucked if straight legs make you swing. The goal is curling the pelvis up at the top, not just lifting the legs. No swinging. If you are using momentum, drop to bent knees and rebuild it.",
@@ -510,7 +598,7 @@ const FORGE_DATA = {
           restLabel: "60 sec",
           weightMode: "free",
           pair: true,            // two dumbbells: log one, total shown (v0.28)
-          tier: 3,
+          tier: 2,
           image: "farmer-carry.png",
           video: "https://www.youtube.com/results?search_query=farmer+carry+proper+form",
           tip: "Log the weight in ONE hand. Heavy dumbbells or handles, ribs down, shoulders back, walk tall and controlled. Grip usually quits first, which is the training effect. Nothing after this needs your grip, so empty the tank.",
@@ -525,7 +613,7 @@ const FORGE_DATA = {
           rest: 45,
           restLabel: "45 sec",
           weightMode: "free",
-          tier: 3,
+          tier: 2,
           image: "pallof-press.png",
           video: "https://www.youtube.com/results?search_query=pallof+press+form",
           tip: "Cable or band at chest height, stand side-on, press straight out and resist the rotation. Nothing moves except your arms. Log the reps for one side, then match them on the other. This is anti-rotation work, which is the half of core training almost everyone skips.",
@@ -559,7 +647,7 @@ const FORGE_DATA = {
       label: "Hypertrophy",
       goal: "Volume — moderate loads, higher reps, controlled tempos",
       estimatedMinutes: 58,
-      minutesBySize: { light: 30, normal: 58, extended: 84 },
+      minutesBySize: { light: 58, normal: 84, extended: 102 },
       warmup: {
         name: "Dynamic Warm-Up",
         duration: "5 minutes",
@@ -574,7 +662,7 @@ const FORGE_DATA = {
         {
           id: "pike-pushup",
           name: "Pike Push-Ups",
-          tier: 2,
+          tier: 1,
           sets: 2,
           reps: "to failure",
           rpe: "-",
@@ -607,7 +695,7 @@ const FORGE_DATA = {
         {
           id: "cable-flyes",
           name: "Cable Flyes",
-          tier: 2,
+          tier: 1,
           sets: 3,
           reps: "12-15",
           rpe: "9",
@@ -638,7 +726,7 @@ const FORGE_DATA = {
         {
           id: "tricep-pushdown",
           name: "Tricep Pushdowns",
-          tier: 2,
+          tier: 1,
           sets: 3,
           reps: "12-15",
           rpe: "9",
@@ -653,7 +741,7 @@ const FORGE_DATA = {
         {
           id: "cable-oh-tricep-ext",
           name: "Overhead Tricep Extension",
-          tier: 3,
+          tier: 2,
           sets: 3,
           reps: "12-15",
           rpe: "9",
@@ -663,6 +751,34 @@ const FORGE_DATA = {
           image: "cable-oh-tricep-ext.png",
           video: "https://www.youtube.com/watch?v=kiuVA0gs3EI",
           tip: "Face away from cable stack, rope behind the head. Extend fully overhead, squeeze at lockout. The long head of the tricep gets stretched in this position, which is important since flat pressing doesn't load it well.",
+          isFinisher: false
+        },
+        {
+          id: "cable-curl-behind",
+          name: "Behind-the-Body Cable Curl",
+          tier: 3,
+          sets: 3,
+          reps: "12-15 ea",
+          rpe: "9",
+          rest: 45,
+          restLabel: "45 sec",
+          weightMode: "free",
+          video: "https://www.youtube.com/results?search_query=bayesian+cable+curl+proper+form",
+          tip: "Pulley at the bottom, single handle. Face away from the stack and step forward until your arm is pulled back behind your body. Curl without letting the elbow drift forward, lower slowly to a full stretch. One arm at a time. Log the reps for one side.",
+          isFinisher: false
+        },
+        {
+          id: "ez-reverse-curl",
+          name: "EZ-Bar Reverse Curl",
+          tier: 3,
+          sets: 3,
+          reps: "12-15",
+          rpe: "9",
+          rest: 45,
+          restLabel: "45 sec",
+          weightMode: "free",
+          video: "https://www.youtube.com/results?search_query=ez+bar+reverse+curl+proper+form",
+          tip: "Palms down on the outer bends of the EZ bar, thumbs over the top. Elbows pinned to your sides, curl to shoulder height, lower for three counts. Wrists stay straight. Expect about half your normal curl weight: the forearms are the limit here.",
           isFinisher: false
         },
         {
@@ -689,7 +805,7 @@ const FORGE_DATA = {
           rest: 45,
           restLabel: "45 sec",
           weightMode: "free",
-          tier: 3,
+          tier: 2,
           image: "crunch-machine.png",
           video: "https://www.youtube.com/results?search_query=ab+crunch+machine+proper+form",
           tip: "Set the seat so the pivot sits at your navel, not your chest. Short range, controlled, no yanking with the arms. Two-second squeeze at the bottom of the crunch.",
@@ -723,7 +839,7 @@ const FORGE_DATA = {
       label: "Hypertrophy",
       goal: "Volume — moderate loads, higher reps, controlled tempos",
       estimatedMinutes: 58,
-      minutesBySize: { light: 30, normal: 58, extended: 84 },
+      minutesBySize: { light: 58, normal: 84, extended: 102 },
       warmup: {
         name: "Dynamic Warm-Up",
         duration: "5 minutes",
@@ -738,7 +854,7 @@ const FORGE_DATA = {
         {
           id: "inverted-row",
           name: "Inverted Rows",
-          tier: 2,
+          tier: 1,
           sets: 2,
           reps: "to failure",
           rpe: "-",
@@ -785,7 +901,7 @@ const FORGE_DATA = {
         {
           id: "face-pulls",
           name: "Face Pulls",
-          tier: 2,
+          tier: 1,
           sets: 3,
           reps: "15",
           rpe: "8",
@@ -807,7 +923,7 @@ const FORGE_DATA = {
           restLabel: "45 sec",
           weightMode: "free",
           pair: true,            // two dumbbells: log one, total shown (v0.28)
-          tier: 3,
+          tier: 2,
           image: "db-shrugs.png",
           video: "https://www.youtube.com/results?search_query=dumbbell+shrug+proper+form+traps",
           tip: "Dumbbells at the sides means no bar blocking the bottom, so you get a real stretch before the shrug. Straight up, pause a beat at the top, lower slowly. No rolling the shoulders, which does nothing but grind the joint.",
@@ -816,7 +932,7 @@ const FORGE_DATA = {
         {
           id: "db-hammer-curls",
           name: "Dumbbell Hammer Curls",
-          tier: 2,
+          tier: 1,
           sets: 3,
           reps: "12",
           rpe: "9",
@@ -832,7 +948,7 @@ const FORGE_DATA = {
         {
           id: "rear-delt-flyes",
           name: "Rear Delt Flyes",
-          tier: 3,
+          tier: 2,
           sets: 3,
           reps: "12-15",
           rpe: "9",
@@ -843,6 +959,34 @@ const FORGE_DATA = {
           image: "rear-delt-flyes.png",
           video: "https://www.youtube.com/watch?v=EA7u4Q_8HQ0",
           tip: "Bent over, slight elbow bend, raise out to sides with a squeeze at top. Light weight, high control. Balances all the pressing in this program.",
+          isFinisher: false
+        },
+        {
+          id: "tricep-pushdown",
+          name: "Tricep Pushdowns",
+          tier: 3,
+          sets: 3,
+          reps: "12-15",
+          rpe: "9",
+          rest: 45,
+          restLabel: "45 sec",
+          weightMode: "free",
+          video: "https://www.youtube.com/results?search_query=tricep+pushdown+proper+form",
+          tip: "Elbows pinned to the sides. Full extension at the bottom, controlled return. Two different tricep angles in one session gives balanced development across all three heads.",
+          isFinisher: false
+        },
+        {
+          id: "wrist-curl",
+          name: "Wrist Curl",
+          tier: 3,
+          sets: 3,
+          reps: "15-20",
+          rpe: "9",
+          rest: 45,
+          restLabel: "45 sec",
+          weightMode: "free",
+          video: "https://www.youtube.com/results?search_query=seated+barbell+wrist+curl+proper+form",
+          tip: "Sit, forearms flat on your thighs, palms up, wrists just past the knees. Let the bar roll down to your fingertips, then close the hand and curl the wrist up. Only the wrists move. Late in the day on purpose: your grip is done after this.",
           isFinisher: false
         },
         {
@@ -888,7 +1032,7 @@ const FORGE_DATA = {
       label: "Hypertrophy",
       goal: "Volume — moderate loads, higher reps, controlled tempos",
       estimatedMinutes: 62,
-      minutesBySize: { light: 33, normal: 65, extended: 89 },
+      minutesBySize: { light: 65, normal: 89, extended: 108 },
       warmup: {
         name: "Dynamic Warm-Up",
         duration: "5 minutes",
@@ -904,7 +1048,7 @@ const FORGE_DATA = {
         {
           id: "assisted-pistol-squat",
           name: "Assisted Pistol Squats",
-          tier: 2,
+          tier: 1,
           sets: 2,
           reps: "max each leg",
           rpe: "-",
@@ -952,7 +1096,7 @@ const FORGE_DATA = {
         {
           id: "leg-extension",
           name: "Leg Extension",
-          tier: 2,
+          tier: 1,
           sets: 4,
           reps: "12",
           rpe: "9",
@@ -973,7 +1117,7 @@ const FORGE_DATA = {
           rest: 45,
           restLabel: "45 sec",
           weightMode: "free",
-          tier: 2,
+          tier: 1,
           image: "hip-abduction.png",
           video: "https://www.youtube.com/results?search_query=hip+abduction+machine+glute+medius+form",
           tip: "Lean the torso slightly forward to bias the glute medius over the TFL. Push out under control, resist all the way back in. Weak abductors are a common source of knee and lower back complaints, so treat this as real work, not a cooldown.",
@@ -982,7 +1126,7 @@ const FORGE_DATA = {
         {
           id: "walking-lunges",
           name: "Walking Lunges",
-          tier: 3,
+          tier: 2,
           sets: 3,
           reps: "12 each",
           rpe: "8-9",
@@ -996,9 +1140,23 @@ const FORGE_DATA = {
           isFinisher: false
         },
         {
+          id: "hip-thrust",
+          name: "Hip Thrust Machine",
+          tier: 3,
+          sets: 3,
+          reps: "8-12",
+          rpe: "8-9",
+          rest: 45,
+          restLabel: "45 sec",
+          weightMode: "free",
+          video: "https://www.youtube.com/results?search_query=hip+thrust+machine+proper+form",
+          tip: "Upper back on the pad, belt or pad across the hip crease, feet flat so the shins are vertical at the top. Drive through the heels until the hips are level with the knees, squeeze for a beat, lower under control. Chin tucked and ribs down: the movement is at the hips, not the lower back.",
+          isFinisher: false
+        },
+        {
           id: "seated-calf-raise",
           name: "Seated Calf Raises",
-          tier: 2,
+          tier: 1,
           sets: 4,
           reps: "15",
           rpe: "9",
@@ -1011,6 +1169,20 @@ const FORGE_DATA = {
           isFinisher: false
         },
         {
+          id: "standing-calf-raise",
+          name: "Weighted Standing Calf Raises",
+          tier: 3,
+          sets: 3,
+          reps: "10",
+          rpe: "8",
+          rest: 45,
+          restLabel: "45 sec",
+          weightMode: "free",
+          video: "https://www.youtube.com/results?search_query=standing+calf+raise+proper+form",
+          tip: "Load this heavy. Full stretch at the bottom (let the heels drop), hard squeeze at the top with a two-count hold. Calves respond to heavy loads and full range. Don't bounce.",
+          isFinisher: false
+        },
+        {
           id: "suitcase-carry",
           name: "Suitcase Carry",
           sets: 3,
@@ -1019,7 +1191,7 @@ const FORGE_DATA = {
           rest: 60,
           restLabel: "60 sec",
           weightMode: "free",
-          tier: 3,
+          tier: 2,
           image: "suitcase-carry.png",
           video: "https://www.youtube.com/results?search_query=suitcase+carry+core+exercise+form",
           tip: "One weight, one side, walk without leaning. The obliques on the empty side are doing the work, fighting to keep you upright. This is direct anti-tilt training for the same lower back the back extensions are protecting. Switch hands each set.",

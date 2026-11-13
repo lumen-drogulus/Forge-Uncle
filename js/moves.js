@@ -4538,6 +4538,379 @@ const cuePath = (pts, on) => pth("M" + pts.map(P2).join("L"), "cue" + (on ? " on
 })();
 
 /* =========================================================
+   v0.33 · the new Extended size: eight moves
+   incline-db-curl, ez-skull-crusher, cable-curl-behind, ez-reverse-curl,
+   wrist-curl, seated-leg-curl, hip-adduction, hip-thrust
+   ========================================================= */
+
+/* ---- EZ-bar reverse curl: palms down, elbows pinned, wrists straight ---- */
+(() => {
+  const S0 = tilt2(1), PEL = [0, 91.2, 0], UA = 6;
+  sideMove({
+    id: "ez-reverse-curl", frame: { k: 1.2, cx: 150, cy: 158 },
+    keys: { down: { a: 6 }, up: { a: 132 } }, ghostKey: "up",
+    seq: [
+      { label: "Curl", dur: 1, from: "down", to: "up", ease: "inOut", effort: 1 },
+      { label: "Squeeze", dur: 0.4, from: "up", to: "up", effort: 1 },
+      { label: "Lower 3s", dur: 3, from: "up", to: "down", ease: "inOut", effort: 0.7 },
+      { label: "Reset", dur: 0.3, from: "down", to: "down", effort: 0.3 },
+    ],
+    muscles: { forearms: 1, biceps: 0.5 },
+    spec: p => ({
+      pelvis: PEL, spine: S0, lat: FACE_RIGHT, legs: standLegs(0),
+      arms: J => {
+        const out = {};
+        for (const S of ["R", "L"]) {
+          const ou = out3(J, S), sh = J["sh" + S];
+          const E = a3(sh, a3([31 * Math.sin(UA * D2R), -31 * Math.cos(UA * D2R), 0], m3(ou, -1.5)));
+          const a = p.a * D2R, G = a3(E, a3([33 * Math.sin(a), -33 * Math.cos(a), 0], m3(ou, 1)));
+          out[S] = via(J, S, E, G);
+        }
+        return out;
+      },
+    }),
+    draw(J, p, ctx, P) {
+      const sh = P(J.shL), e = P(J.elbowL), g = P(J.gripL), w = P(J.wristL);
+      const work = ctx.phase === "Curl" || ctx.phase === "Squeeze";
+      return {
+        back: [pth(`M${P2([e[0] - 14, sh[1] - 4])}V${r1(e[1] + 12)}`, "cue" + (work ? " on" : ""))],
+        items: barEndR(P, [J.gripL[0], J.gripL[1], 0], 13),
+        labels: [
+          { at: [e[0] - 18, e[1] + 4], text: "ELBOWS PINNED", on: work, anchor: "end" },
+          { at: [Math.max(g[0], w[0]) + 20, Math.min(g[1], 150) - 4], text: "PALMS DOWN", on: true, anchor: "start" },
+        ],
+      };
+    },
+  });
+})();
+
+/* ---- Incline dumbbell curl: bench at 60°, arms hang straight down behind the body, elbows don't swing ---- */
+(() => {
+  const cam = camera3(0, 150, FLOOR_B, 0), P = cam.P;
+  const ANG = 60, SEAT = 46, PELVIS = [58, SEAT + 12.4, 0];
+  const S = n3([-Math.cos(ANG * D2R), Math.sin(ANG * D2R), 0]);
+  const legs = (() => { const l = {}; for (const [Sd, sg] of [["R", 1], ["L", -1]]) l[Sd] = { ankle: [PELVIS[0] + 40, 8.4, -sg * 12], pole: [1, 1, 0], foot: [1, 0, 0] }; return l; })();
+  const spec = p => ({
+    pelvis: PELVIS, spine: S, lat: SUPINE_LAT, head: -4, legs,
+    arms: J => {
+      const o = {};
+      for (const Sd of ["R", "L"]) {
+        const ou = out3(J, Sd), sh = J["sh" + Sd];
+        const E = a3(sh, a3([0, -B.ua, 0], m3(ou, 2)));
+        const a = p.a * D2R, G = a3(E, a3([B.grip * Math.sin(a), -B.grip * Math.cos(a), 0], m3(ou, 1)));
+        o[Sd] = via(J, Sd, E, G);
+      }
+      return o;
+    },
+  });
+  const FIG = {
+    id: "incline-db-curl", view: "SIDE",
+    frame: { k: 1.3, cx: 160, cy: 176 },
+    keys: { down: { a: 3 }, up: { a: 138 } }, ghostKey: "down",
+    seq: [
+      { label: "Curl", dur: 1, from: "down", to: "up", ease: "inOut", effort: 1 },
+      { label: "Squeeze", dur: 0.4, from: "up", to: "up", effort: 1 },
+      { label: "Lower 3s", dur: 3, from: "up", to: "down", ease: "inOut", effort: 0.75 },
+      { label: "Stretch", dur: 0.5, from: "down", to: "down", effort: 0.5 },
+    ],
+    muscles: { biceps: 1, forearms: 0.35 },
+    build(p, ctx) {
+      const J = solve3(spec(p)), yF = P([0, 0, 0])[1];
+      const hinge = P(a3(J.T(-0.14, 0, 0), m3(J.ant, -14.5)));
+      const r = 30, a0 = [hinge[0] - r, hinge[1]], a1 = [hinge[0] - r * Math.cos(ANG * D2R), hinge[1] - r * Math.sin(ANG * D2R)];
+      const gauge = pth(`M${P2(a0)}A${r} ${r} 0 0 1 ${P2(a1)}`, "cue on");
+      const sh = P(J.shL), e = P(J.elbowL), g = P(J.gripL);
+      const hang = p.a < 6, work = ctx.phase === "Curl" || ctx.phase === "Squeeze";
+      const items = [];
+      for (const Sd of ["R", "L"]) { const near = Sd === "L"; items.push({ depth: near ? 998 : -998, tag: "db" + Sd, els: hexEnd(P(J["grip" + Sd]), 8, near ? "iron" : "iron-dim") }); }
+      const back = [...floorEls(yF, 30, 270), floorShadow(ctx, P([44, 0, 0])[0], yF, 60, 0.8),
+        ...inclineBenchEls(P, J, PELVIS[0] - 14, PELVIS[0] + 24, SEAT), gauge,
+        pth(`M${P2([sh[0], sh[1] + 6])}V${r1(e[1] + 44)}`, "cue" + (work || hang ? " on" : ""))];
+      return { els: back.concat(draw3D(J, cam, ctx.mus, items)), J, labels: [
+        { at: [a0[0] - 6, a0[1] - 4], text: "60°", on: true, anchor: "end" },
+        { at: [e[0] - 12, yF + 14], text: "ARMS HANG BEHIND", on: hang, anchor: "middle" },
+        { at: [268, sh[1] - 38], text: "ELBOWS STAY BACK", on: work, anchor: "end" },
+      ] };
+    },
+  };
+  calib(cam, FIG); FIGS.push(FIG);
+})();
+
+/* ---- EZ-bar skull crusher: upper arms tilted back and still, bar to just past the top of the head ---- */
+(() => {
+  const cam = camera3(0, 150, FLOOR_B, 0), P = cam.P;
+  const PX = 58, PELVIS = [PX, BENCH.top + 12.4, 0], S = n3([-1, -0.03, 0]), TILT = 15;
+  const ud = [-Math.sin(TILT * D2R), Math.cos(TILT * D2R), 0];
+  const spec = p => ({
+    pelvis: PELVIS, spine: S, lat: SUPINE_LAT, head: -6, legs: plantedLegs(PX + 34),
+    arms: J => {
+      const o = {};
+      for (const Sd of ["R", "L"]) {
+        const ou = out3(J, Sd), sh = J["sh" + Sd];
+        const E = a3(sh, a3(m3(ud, B.ua), m3(ou, -5)));
+        const a = (TILT + p.f) * D2R, G = a3(E, a3([-B.grip * Math.sin(a), B.grip * Math.cos(a), 0], m3(ou, -6)));
+        o[Sd] = via(J, Sd, E, G);
+      }
+      return o;
+    },
+  });
+  const FIG = {
+    id: "ez-skull-crusher", view: "SIDE",
+    frame: { k: 1.4, cx: 160, cy: 186 },
+    keys: { top: { f: 4 }, bot: { f: 120 } }, ghostKey: "bot",
+    seq: [
+      { label: "Lower", dur: 2, from: "top", to: "bot", ease: "inOut", effort: 0.75 },
+      { label: "Stretch", dur: 0.3, from: "bot", to: "bot", effort: 0.9 },
+      { label: "Press", dur: 1, from: "bot", to: "top", ease: "inOut", effort: 1 },
+      { label: "Lockout", dur: 0.4, from: "top", to: "top", effort: 0.4 },
+    ],
+    muscles: { triceps: 1 },
+    build(p, ctx) {
+      const J = solve3(spec(p)), yF = P([0, 0, 0])[1];
+      const sh = P(J.shL), e = P(J.elbowL), g = P(J.gripL);
+      const ext = [e[0] + (e[0] - sh[0]) * 0.5, e[1] + (e[1] - sh[1]) * 0.5];
+      const deep = p.f > 114;
+      const back = [...floorEls(yF, 30, 270), floorShadow(ctx, P([PX - 14, 0, 0])[0], yF, 70, 0.8),
+        ...flatBenchEls(P, PX - 92, PX + 22), cueLine(sh, ext, true)];
+      return { els: back.concat(draw3D(J, cam, ctx.mus, barEndR(P, [J.gripL[0], J.gripL[1], 0], 13))), J, labels: [
+        { at: [ext[0] + 8, ext[1] - 4], text: "ELBOWS STILL", on: true, anchor: "start" },
+        { at: [g[0] - 2, yF + 14], text: "PAST THE HEAD", on: deep, anchor: "middle" },
+      ] };
+    },
+  };
+  calib(cam, FIG); FIGS.push(FIG);
+  FIG._def = { spec, bench: { x0: PX - 92, x1: PX + 22 } };   // for the SPOTTER view (moves_96_views_v33.js)
+})();
+
+/* ---- Behind-the-body cable curl: face away from a low pulley, elbow stays behind the hip ---- */
+(() => {
+  const cam = camera3(0, 150, FLOOR_C, 0), P = cam.P;
+  const S0 = tilt2(8), EXIT = [-62, 24, 0], UA = -24;      // upper arm 24° behind vertical
+  const spec = p => ({
+    pelvis: [0, 90.8, 0], spine: S0, lat: FACE_RIGHT, head: -4, legs: standLegs(0, 14),
+    arms: J => {
+      const o = {};
+      const ouL = out3(J, "L"), shL = J.shL;
+      const E = a3(shL, a3([B.ua * Math.sin(UA * D2R), -B.ua * Math.cos(UA * D2R), 0], m3(ouL, 3)));
+      const a = p.a * D2R, G = a3(E, a3([B.grip * Math.sin(a), -B.grip * Math.cos(a), 0], m3(ouL, 1)));
+      o.L = via(J, "L", E, G);
+      // the resting hand sits on the hip
+      const ouR = out3(J, "R");
+      o.R = { at: a3(J.pelvis, a3([4, 6, 0], m3(ouR, 15))), pole: a3([-1, 0, 0], m3(ouR, 0.6)) };
+      return o;
+    },
+  });
+  let REST = 0;
+  const FIG = {
+    id: "cable-curl-behind", view: "SIDE",
+    frame: { k: 1.16, cx: 128, cy: 150 },
+    keys: { down: { a: -30 }, up: { a: 118 } }, ghostKey: "down",
+    seq: [
+      { label: "Curl", dur: 1, from: "down", to: "up", ease: "inOut", effort: 1 },
+      { label: "Squeeze", dur: 0.4, from: "up", to: "up", effort: 1 },
+      { label: "Lower", dur: 2.4, from: "up", to: "down", ease: "inOut", effort: 0.75 },
+      { label: "Stretch", dur: 0.5, from: "down", to: "down", effort: 0.5 },
+    ],
+    muscles: { biceps: 1, forearms: 0.35 },
+    build(p, ctx) {
+      const J = solve3(spec(p)), yF = P([0, 0, 0])[1];
+      const G = J.gripL, lift = liftOf(EXIT, G, REST);
+      const sh = P(J.shL), e = P(J.elbowL), hp = P(J.pelvis);
+      const stretch = p.a < -24;
+      const back = [...floorEls(yF, 20, 270), floorShadow(ctx, 150, yF, 30), ...towerSide(P, -98, -62, 230, lift, [EXIT]),
+        pth(`M${P2([hp[0], sh[1] + 4])}V${r1(hp[1] + 22)}`, "cue on")];
+      const cable = { depth: 999, tag: "cable", els: [pth(`M${P2(P(EXIT))}L${P2(P(G))}`, "cable"), pth(circle(P(G), 2.6), "iron")] };
+      return { els: back.concat(draw3D(J, cam, ctx.mus, [cable])), J, labels: [
+        { at: [250, hp[1] + 12], text: "ELBOW BEHIND", on: true, anchor: "end" },
+        { at: [P(EXIT)[0] + 14, yF + 13], text: "FULL STRETCH", on: stretch, anchor: "start" },
+      ] };
+    },
+  };
+  REST = l3(s3(solve3(spec(FIG.keys.down)).gripL, EXIT));
+  calib(cam, FIG); FIGS.push(FIG);
+})();
+
+/* ---- Wrist curl: seated, forearms flat on the thighs, only the wrists move ---- */
+(() => {
+  const SEAT = 46, PEL = [0, SEAT + 12.4, 0], S0 = tilt2(58);
+  const td = n3([42, -8, 0]);                         // along the thigh, hip to knee
+  const ELB = [24.5, 61.8], FA = B.fa;
+  sideMove({
+    id: "wrist-curl", frame: { k: 1.5, cx: 172, cy: 196 }, shadowR: 40,
+    keys: { down: { w: -52 }, up: { w: 48 } }, ghostKey: "up",
+    seq: [
+      { label: "Curl", dur: 1, from: "down", to: "up", ease: "inOut", effort: 1 },
+      { label: "Squeeze", dur: 0.4, from: "up", to: "up", effort: 1 },
+      { label: "Lower", dur: 2, from: "up", to: "down", ease: "inOut", effort: 0.7 },
+      { label: "Open", dur: 0.4, from: "down", to: "down", effort: 0.4 },
+    ],
+    muscles: { forearms: 1 },
+    spec: p => ({
+      pelvis: PEL, spine: S0, lat: FACE_RIGHT, head: 34, legs: seatedLegs(42),
+      arms: J => {
+        const o = {}, th = Math.atan2(td[1], td[0]) + p.w * D2R, hand = [Math.cos(th), Math.sin(th), 0];
+        for (const [Sd, z] of [["R", -12], ["L", 12]]) {
+          const E = [ELB[0], ELB[1], z], W = a3(E, m3(td, FA));
+          o[Sd] = { at: W, elbow: E, pole: [0, -1, 0], wrist: true, hand };
+        }
+        return o;
+      },
+    }),
+    draw(J, p, ctx, P) {
+      const e = P(J.elbowL), w = P(J.wristL), g = P(J.gripL);
+      return {
+        back: [...seatEls(P, -18, 16, SEAT, 0), cueLine([e[0] - 4, e[1] - 9], [w[0] + 2, w[1] - 9], true)],
+        items: barEndR(P, [J.gripL[0], J.gripL[1], 0], 11),
+        labels: [
+          { at: [e[0] - 8, e[1] - 22], text: "FOREARMS FLAT", on: true, anchor: "end" },
+          { at: [g[0] + 6, P([0, 0, 0])[1] + 14], text: "ONLY WRISTS MOVE", on: ctx.phase === "Curl" || ctx.phase === "Squeeze", anchor: "middle" },
+        ],
+      };
+    },
+  });
+})();
+
+/* ---- Seated leg curl: back on the pad, thigh pad down, heels all the way under the seat, slow return ---- */
+(() => {
+  const SEAT = 50, PEL = [0, SEAT + 12.4, 0], S0 = tilt2(-6);
+  const KNEE = [B.thigh, SEAT + 11, 0];
+  const leg = a => {
+    const d = [Math.sin(a * D2R), -Math.cos(a * D2R), 0];
+    return { d, ank: a3(KNEE, m3(d, B.shin)), fd: [Math.cos(a * D2R), Math.sin(a * D2R), 0] };
+  };
+  sideMove({
+    id: "seated-leg-curl", frame: { k: 1.3, cx: 166, cy: 176 }, shadowR: 40,
+    keys: { out: { a: 76 }, in: { a: -26 } }, ghostKey: "in",
+    seq: [
+      { label: "Curl", dur: 1, from: "out", to: "in", ease: "inOut", effort: 1 },
+      { label: "Squeeze", dur: 0.4, from: "in", to: "in", effort: 1 },
+      { label: "Return 3s", dur: 3, from: "in", to: "out", ease: "inOut", effort: 0.75 },
+      { label: "Reset", dur: 0.3, from: "out", to: "out", effort: 0.3 },
+    ],
+    muscles: { hams: 1, calves: 0.3 },
+    spec: p => {
+      const L = leg(p.a), legs = {};
+      for (const [S, z] of [["R", -11], ["L", 11]]) legs[S] = { knee: [KNEE[0], KNEE[1], z], ankle: [L.ank[0], L.ank[1], z], pole: [0, 1, 0], foot: L.fd, sole: L.d };
+      return { pelvis: PEL, spine: S0, lat: FACE_RIGHT, head: -4, legs,
+        arms: J => { const o = {}; for (const S of ["R", "L"]) { const ou = out3(J, S); o[S] = { at: a3([PEL[0] + 10, SEAT + 3, 0], m3(ou, 24)), pole: a3([-0.5, 0, 0], m3(ou, 1)) }; } return o; } };
+    },
+    draw(J, p, ctx, P) {
+      const L = leg(p.a);
+      const roller = a3(a3(KNEE, m3(L.d, B.shin * 0.84)), m3(L.fd, -(3.8 + 5.5)));     // behind the lower calf
+      const k = P(KNEE), rl = P(roller), tp = P([KNEE[0] - 9, KNEE[1] + 6.4 + 5, 0]);
+      const backPad = slab(P, [J.pelvis[0] - 12.5, SEAT], [Math.sin(-6 * D2R), Math.cos(-6 * D2R)], 62, 6, [-Math.cos(6 * D2R), -Math.sin(6 * D2R)]);
+      const tucked = p.a < -22;
+      return {
+        back: [...seatEls(P, -18, 30, SEAT, 6), backPad],
+        items: [
+          { depth: 999, tag: "lever", els: [pth(`M${P2(k)}L${P2(rl)}`, "cable", "stroke-width:2.2"), pth(circle(k, 4), "iron"), pth(circle(k, 1.4), "dot"), pth(circle(rl, 5.5), "iron"), pth(circle(rl, 1.6), "dot")] },
+          { depth: 998, tag: "thighpad", els: [pth(`M${P2(tp)}L${r1(tp[0] - 14)} ${r1(tp[1] - 26)}`, "line-dim"), pth(circle(tp, 5), "iron"), pth(circle(tp, 1.5), "dot")] },
+        ],
+        labels: [
+          { at: [P(J.shoulder)[0] - 26, P(J.shoulder)[1] - 4], text: "BACK ON PAD", on: true, anchor: "end" },
+          { at: [278, P(J.shoulder)[1] - 4], text: "HEELS UNDER SEAT", on: tucked, anchor: "end" },
+        ],
+      };
+    },
+  });
+})();
+
+/* ---- Hip adduction machine (front): pads inside the knees, squeeze together, open slowly ---- */
+(() => {
+  const cam = camera3(16, 150, 262, -5), P = cam.P;
+  const SEAT = 48, PEL = [0, SEAT + 12.4, 0];
+  const S0 = n3([0, Math.cos(4 * D2R), -Math.sin(4 * D2R)]);     // sat back against the pad
+  const knees = th => {
+    const o = {};
+    for (const [S, sg] of [["R", 1], ["L", -1]]) {
+      const hip = [sg * 8.6, PEL[1], 0];
+      const kn = a3(hip, [sg * B.thigh * Math.sin(th * D2R), -2, B.thigh * Math.cos(th * D2R)]);
+      o[S] = { knee: kn, ankle: a3(kn, [0, -B.shin, 2]), pole: [sg, 0, 1], foot: [sg * 0.15, 0, 1] };
+    }
+    return o;
+  };
+  const FIG = {
+    id: "hip-adduction", view: "FRONT",
+    frame: { k: 1.42, cx: 150, cy: 186 },
+    keys: { out: { th: 27 }, in: { th: 6 } }, ghostKey: "in",
+    seq: [
+      { label: "Squeeze in", dur: 1, from: "out", to: "in", ease: "inOut", effort: 1 },
+      { label: "Hold", dur: 0.8, from: "in", to: "in", effort: 1 },
+      { label: "Open slow", dur: 2.4, from: "in", to: "out", ease: "inOut", effort: 0.7 },
+      { label: "Reset", dur: 0.3, from: "out", to: "out", effort: 0.3 },
+    ],
+    muscles: { adductors: 1 },
+    build(p, ctx) {
+      const J = solve3({ pelvis: PEL, spine: S0, head: -2, legs: knees(p.th),
+        arms: J0 => { const o = {}; for (const [S, sg] of [["R", 1], ["L", -1]]) o[S] = { at: [sg * 25, SEAT + 6, 8], pole: [sg, -0.4, -0.5] }; return o; } });
+      const yF = P([0, 0, 0])[1];
+      const items = [
+        { depth: -60, tag: "seat", els: [...box3(cam, [-22, SEAT - 6, -22], [22, SEAT, 14], "iron"), ...box3(cam, [-20, SEAT, -26], [20, SEAT + 62, -20], "iron")] },
+      ];
+      for (const [S, sg] of [["R", 1], ["L", -1]]) {
+        const kn = J["knee" + S], padC = a3(kn, [-sg * 8.4, 0, -2]);
+        items.push({ depth: cam.depth(padC) + 6, tag: "pad" + S, els: box3(cam, a3(padC, [-2, -9, -9]), a3(padC, [2, 9, 9]), "iron") });
+        items.push({ depth: cam.depth(J["ankle" + S]) - 4, tag: "rest" + S, els: box3(cam, a3(J["ankle" + S], [-7, -9, -2]), a3(J["ankle" + S], [7, -7, 18]), "iron-dim") });
+      }
+      const els = [...floorEls(yF, 20, 280), floorShadow(ctx, 150, yF, 40, 0.8, 0.4)].concat(draw3D(J, cam, ctx.mus, items));
+      const kR = P(J.kneeR), kL = P(J.kneeL);
+      return { els, J, labels: [
+        { at: [150, yF + 15], text: "KNEES TOGETHER", on: p.th < 8, anchor: "middle" },
+        { at: [150, P(J.head)[1] - 26], text: "OPEN SLOWLY", on: ctx.phase === "Open slow", anchor: "middle" },
+      ] };
+    },
+  };
+  calib(cam, FIG); FIGS.push(FIG);
+})();
+
+/* ---- Hip thrust machine: upper back on the pad, pad across the hip crease, shins vertical at the top,
+   hips level with the knees, chin tucked ---- */
+(() => {
+  const S = [-52, 47, 0], FOOT = [41, 8.4];
+  const hips = a => a3(S, [B.sh * Math.cos(a * D2R), B.sh * Math.sin(a * D2R), 0]);
+  const spec = p => {
+    const pel = hips(p.a), legs = {};
+    for (const [Sd, z] of [["R", -11], ["L", 11]]) legs[Sd] = { ankle: [FOOT[0], FOOT[1], z], pole: [0.3, 1, 0], foot: [1, 0, 0] };
+    return { pelvis: pel, spine: n3(s3(S, pel)), lat: SUPINE_LAT, head: -14 - (p.a + 34) * 0.5, legs,
+      arms: J => { const o = {}; for (const Sd of ["R", "L"]) { const ou = out3(J, Sd);
+        o[Sd] = { at: a3(a3(J.T(0.1, 0, 0), m3(J.ant, 12)), m3(ou, 17)), pole: a3(m3(J.ant, -0.2), m3(ou, 1)) }; } return o; } };
+  };
+  sideMove({
+    id: "hip-thrust", frame: { k: 1.42, cx: 152, cy: 206 }, shadowR: 70, shadowFlat: 0.1,
+    keys: { down: { a: -34 }, up: { a: 1 } }, ghostKey: "up",
+    seq: [
+      { label: "Drive", dur: 1, from: "down", to: "up", ease: "inOut", effort: 1 },
+      { label: "Squeeze", dur: 0.8, from: "up", to: "up", effort: 1 },
+      { label: "Lower", dur: 1.8, from: "up", to: "down", ease: "inOut", effort: 0.65 },
+      { label: "Reset", dur: 0.3, from: "down", to: "down", effort: 0.2 },
+    ],
+    muscles: { glutes: 1, hams: 0.45, quads: 0.25 },
+    spec,
+    draw(J, p, ctx, P) {
+      const top = p.a > 0, sh = P(S), kn = P(J.kneeL), yF = P([0, 0, 0])[1];
+      const ext = add(kn, mul(nrm(sub(kn, sh)), 14));
+      const belt = a3(J.T(0.04, 0, 0), m3(J.ant, 13.5)), bp = P(belt);
+      const padA = P([S[0] - 13, S[1] - 9.5, 0]), padB = P([S[0] + 9, S[1] - 17.5, 0]);
+      const heel = P([FOOT[0] - 2.5, 0, 0]);
+      return {
+        back: [
+          pth(`M${r1((padA[0] + padB[0]) / 2)} ${r1(padB[1])}V${r1(yF)}`, "line-dim"),
+          pth(roundRect((padA[0] + padB[0]) / 2 - 20, yF - 3, 40, 3, 1), "iron-dim"),
+          pth(roundRect(padA[0], padA[1], padB[0] - padA[0], padB[1] - padA[1], 3), "iron"),
+          cueLine(sh, ext, top),
+        ],
+        items: [{ depth: 999, tag: "belt", els: [pth(circle(bp, 5.4), "iron"), pth(circle(bp, 1.5), "dot")] }],
+        labels: [
+          { at: [ext[0] + 4, ext[1] - 6], text: "HIPS LEVEL", on: top, anchor: "start" },
+          { at: [P(J.head)[0] - 4, P(J.head)[1] - 20], text: "CHIN TUCKED", on: true, anchor: "middle" },
+        ],
+        dots: [{ at: [heel[0], heel[1] - 4], on: ctx.phase === "Drive" }],
+      };
+    },
+  });
+})();
+
+/* =========================================================
    Angle presets (v0.30). A second camera on the figures whose
    side view hides the point of the move (grip width, elbow
    flare, stance, knee tracking). Each view is a complete figure:
@@ -4966,6 +5339,71 @@ const camBehind = (elev = 8, floorY = 262) => camera3(elev, 150, floorY, 90);
         labels: [
           { at: [Math.max(P(J.kneeR)[0], P(J.kneeL)[0]) + 12, P(J.kneeR)[1] + 4], text: "KNEES OVER TOES", on: p.s < 0.4 && kc.ok, anchor: "start" },
           { at: [150, ctx.sy(266)], text: "SOFT KNEES, NO LOCKOUT", on: soft && p.s > 0.9, anchor: "middle" },
+        ],
+      };
+    },
+  });
+})();
+
+/* =========================================================
+   v0.33 · second camera angles for two of the new moves
+   ez-skull-crusher@spotter (elbows in, not flared) and
+   ez-reverse-curl@front (the grip: knuckles up, hands on the outer bends)
+   ========================================================= */
+// EZ curl bar across the body (along z): the zigzag grip section, sleeves, one small plate a side
+function ezBarAcross(cam, at, depthBias = 0) {
+  const P = cam.P, D = cam.depth, items = [];
+  const zs = [-58, -27, -19, -9, 0, 9, 19, 27, 58], dy = [0, 0, 3.2, -0.8, 0.6, -0.8, 3.2, 0, 0];
+  const d = zs.map((z, i) => (i ? "L" : "M") + P2(P(a3(at, [0, dy[i], z])))).join("");
+  items.push({ depth: D(at) + depthBias, tag: "bar", els: [pth(d, "cable", "stroke-width:2.4")] });
+  for (const sg of [1, -1]) {
+    const c = a3(at, [0, 0, sg * 47]);
+    items.push({ depth: D(c) + depthBias, tag: "plate" + (sg > 0 ? "A" : "B"), els: obox3(cam, c, [12, 0, 0], [0, 12, 0], [0, 0, 2.6], "iron") });
+  }
+  return items;
+}
+
+/* ---- Skull crusher from the spotter's spot: upper arms straight up from the shoulders, elbows not flared ---- */
+(() => {
+  const base = FIG_BY_ID("ez-skull-crusher"), d = base._def;
+  addView("ez-skull-crusher", {
+    key: "spotter", label: "SPOTTER", cam: SPOTTER(46), fit: { w: 250, h: 190, kMax: 1.5 },
+    noFloor: true, shadowR: 1, shadowO: 0,
+    draw(J, p, ctx, P, cam) {
+      const items = [{ depth: cam.depth([d.bench.x0, BENCH.top - 20, 0]) - 60, tag: "bench",
+        els: [...obox3(cam, [(d.bench.x0 + d.bench.x1) / 2, BENCH.top - BENCH.pad / 2, 0], [(d.bench.x1 - d.bench.x0) / 2, 0, 0], [0, BENCH.pad / 2, 0], [0, 0, 14], "iron"),
+          ...obox3(cam, [(d.bench.x0 + d.bench.x1) / 2, (BENCH.top - BENCH.pad) / 2, 0], [(d.bench.x1 - d.bench.x0) / 2 - 12, 0, 0], [0, (BENCH.top - BENCH.pad) / 2, 0], [0, 0, 3], "iron-dim")] }];
+      items.push(...ezBarAcross(cam, mid3(J.gripR, J.gripL), 4));
+      // elbows in: each elbow sits within a few cm of its shoulder, measured across the body
+      const inLine = ["R", "L"].every(S => Math.abs(d3(s3(J["elbow" + S], J["sh" + S]), J.lat)) < 8);
+      const cue = [];
+      for (const S of ["R", "L"]) { const sh = P(J["sh" + S]), e = P(J["elbow" + S]); const u = nrm(sub(e, sh)); cue.push(cueLine(add(sh, mul(u, -4)), add(e, mul(u, 12)), inLine)); }
+      items.push({ depth: 1e4, tag: "cue", els: cue });
+      const eR = P(J.elbowR), eL = P(J.elbowL), right = eR[0] > eL[0] ? eR : eL;
+      return {
+        items,
+        labels: [
+          { at: [right[0] + 12, right[1] - 4], text: "ELBOWS IN", on: inLine, anchor: "start" },
+          { at: [150, ctx.sy(268)], text: "UPPER ARMS DON'T FLARE", on: inLine, anchor: "middle" },
+        ],
+      };
+    },
+  });
+})();
+
+/* ---- Reverse curl from the front: knuckles up, hands shoulder width on the outer bends ---- */
+(() => {
+  addView("ez-reverse-curl", {
+    cam: camFront(6), fit: { w: 220, h: 214, dy: 6, kMax: 1.15 }, shadowR: 30,
+    draw(J, p, ctx, P, cam) {
+      const SR = P(J.shR), SL = P(J.shL), ER = P(J.elbowR), EL = P(J.elbowL);
+      const work = ctx.phase === "Curl" || ctx.phase === "Squeeze";
+      return {
+        back: [pth(`M${r1(SR[0])} ${r1(SR[1])}V${r1(ER[1] + 8)}M${r1(SL[0])} ${r1(SL[1])}V${r1(EL[1] + 8)}`, "cue" + (work ? " on" : ""))],
+        items: ezBarAcross(cam, mid3(J.gripR, J.gripL), 6),
+        labels: [
+          { at: [150, P([0, 0, 0])[1] + 14], text: "KNUCKLES UP · OUTER BENDS", on: true, anchor: "middle" },
+          { at: [150, P(J.head)[1] - 24], text: "ELBOWS AT SIDES", on: work, anchor: "middle" },
         ],
       };
     },

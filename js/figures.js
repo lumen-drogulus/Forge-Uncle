@@ -708,6 +708,7 @@ function draw3D(J, cam, mus, items = [], ghost = false) {
       M("quads", spindle(A, Bp, 9.2, 6, 0.16, 0.94, sideOn ? fwd : 0, sideOn ? 1 : 0.9));
       M("hams", spindle(A, Bp, 9.2, 6, 0.22, 0.9, sideOn ? backSide : 0, sideOn ? 1 : 0.9));
       M("abductors", spindle(A, Bp, 9.2, 6, -0.12, 0.42, sideTo(A, Bp, out3s(S)), 1.1));
+      M("adductors", spindle(A, Bp, 9.2, 6, 0.08, 0.78, -sideTo(A, Bp, out3s(S)), 1.1));   // inner thigh (v0.33)
     }, "thigh" + S);
     item((D(kn) + D(an)) / 2, () => {
       const A = P(kn), Bp = P(an);

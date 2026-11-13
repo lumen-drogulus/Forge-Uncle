@@ -137,7 +137,8 @@
 
   // ===== WORKOUT SIZE =====
   // Every exercise carries tier 1, 2 or 3 and the sizes are cumulative:
-  // light = tier 1, normal = 1+2, extended = everything. One list per day,
+  // light = tier 1, normal = 1+2, extended = everything (v0.33: on the six cycle days
+  // tier 1 is the old 1+2, tier 2 the old 3, tier 3 the new moves). One list per day,
   // three views of it, so nothing is authored twice.
   const SIZE_TIERS = { light: 1, normal: 2, extended: 3 };
   const SIZE_ORDER = ['light', 'normal', 'extended'];
@@ -563,9 +564,36 @@
     Store.set('completedDays', rebuilt);
   }
 
+  // ===== SIZE SHIFT (v0.33) =====
+  // On the six cycle days the old Normal became Light and the old Extended became
+  // Normal, with a new, bigger Extended on top. Run once per phone: move the saved
+  // default down one step so the daily workout stays the same list of moves, and do
+  // the same for a workout that was in progress when the update landed (its log is
+  // positional, and the old Extended list is exactly the new Normal list).
+  // Alternates kept their sizes, so a workout in progress on one is left alone.
+  function migrateSizeShift() {
+    var s = Store.getSettings();
+    if (s.sizeShift) return;
+    var down = { extended: 'normal', normal: 'light' };
+    // Only a phone with saved settings has a size to move. A fresh install has
+    // none (getSettings() hands back defaults) and keeps the default, Normal.
+    var had = !!Store.get('settings');
+    var cur = s.workoutSize || 'normal';   // saved settings with no size were running on Normal
+    if (had && down[cur]) s.workoutSize = down[cur];
+    s.sizeShift = 33;
+    Store.saveSettings(s);
+    var saved = Store.getActiveWorkout();
+    var log = saved && saved.activeWorkoutLog;
+    if (log && down[log.size] && FORGE_DATA.cycleDays.some(function(d) { return d.id === log.dayId; })) {
+      log.size = down[log.size];
+      Store.saveActiveWorkout(saved);
+    }
+  }
+
   // ===== INIT =====
   function init() {
     playSplash();   // start the logo strike right away
+    migrateSizeShift();
     var settings = Store.getSettings();
     state.bodyWeight = settings.bodyWeight || 180;
     state.workoutSize = settings.workoutSize || 'normal';
@@ -589,8 +617,11 @@
       restoreFromSheets().then(function(restored) {
         if (restored) {
           var s = Store.getSettings();
+          migrateSizeShift();
+          s = Store.getSettings();
           state.bodyWeight = s.bodyWeight || 180;
           state.weightUnit = s.weightUnit || 'lbs';
+          state.workoutSize = s.workoutSize || 'normal';
         }
         migrateCompletedDays(); // restored backup may contain old poisoned entries
         applyBwModes();
@@ -703,6 +734,11 @@ Store.saveActiveWorkout({
   // jumping a version. Add a new entry at the top for every release that has
   // notes; a release without notes adds nothing and shows nothing.
   const RELEASES = [
+    { id: 'v0.33', items: [
+      ['Sizes moved up', 'On the six main days, Light is now the old Normal and Normal is the old Extended. Your saved size was moved down one step, so your usual workout is the same moves as before. Earlier days on the calendar keep the mark they were logged with.'],
+      ['New Extended', 'Extended adds two more moves to each main day (three on Legs B): extra arm and forearm work on the push and pull days, hamstrings, inner thigh and glutes on the leg days.'],
+      ['Eight new moves', 'Incline Dumbbell Curl, EZ-Bar Skull Crusher, Behind-the-Body Cable Curl, EZ-Bar Reverse Curl, Wrist Curl, Seated Leg Curl, Hip Adduction Machine and Hip Thrust Machine, each with an animated demo. The skull crusher and the reverse curl have a second camera angle. All eight are also in Add exercise.'],
+    ] },
     { id: 'v0.32', items: [
       ['Add an exercise', 'On the workout list, tap Add exercise to put any move in the app on today\u2019s session. It counts toward that move\u2019s history and records like any other set.'],
       ['Cardio', 'Treadmill, Stair Stepper, Bike and Elliptical are at the top of that list. Log the time, the distance and the level.'],
@@ -1338,9 +1374,10 @@ Store.saveActiveWorkout({
 
       <div class="sheet-section-label">Size</div>
       <div class="key-grid">
-        <div class="key-row"><span class="cal-code pwr">\u2212</span><span>Light \u00b7 ~30 min</span></div>
-        <div class="key-row"><span class="cal-code pwr">\u2731</span><span>Normal \u00b7 ~60 min</span></div>
-        <div class="key-row"><span class="cal-code pwr">+</span><span>Extended \u00b7 ~90 min</span></div>
+        <div class="key-row"><span class="cal-code pwr">\u2212</span><span>Light \u00b7 ~60 min</span></div>
+        <div class="key-row"><span class="cal-code pwr">\u2731</span><span>Normal \u00b7 ~85 min</span></div>
+        <div class="key-row"><span class="cal-code pwr">+</span><span>Extended \u00b7 ~105 min</span></div>
+        <div class="key-row"><span class="cal-code cal">\u2212</span><span>Calisthenics, Back &amp; Core \u00b7 ~30 / 55 / 80</span></div>
       </div>
 
       <div class="sheet-section-label">Colour</div>
@@ -4246,6 +4283,8 @@ Store.saveActiveWorkout({
           state.sheetsUrl = Sandbox.on ? '' : (data.settings.sheetsUrl || FORGE_DATA.sheetsWebhookUrl || '');
         }
 
+        migrateSizeShift();   // a backup from before v0.33 carries the old size names
+        state.workoutSize = Store.getSettings().workoutSize || 'normal';
         migrateCompletedDays(); // imported backups may contain old poisoned entries
         applyBwModes();
         migratePRs();
