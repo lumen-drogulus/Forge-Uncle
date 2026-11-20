@@ -1407,6 +1407,7 @@ button { font: inherit; color: inherit; }
 .plate-viz-plate.p10 { height: 36px; }
 .plate-viz-plate.p5  { height: 30px; }
 .plate-hint { text-align: center; font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); margin-bottom: 14px; }
+.plate-hint.plate-miss { color: var(--acc); }
 .plate-btn-row { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; margin-bottom: 10px; }
 .plate-btn {
   height: 48px;

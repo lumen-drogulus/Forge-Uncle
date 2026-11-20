@@ -33,7 +33,7 @@
     stopwatchStart: 0,
     stopwatchInterval: null,
     stopwatchElapsed: 0,
-    plateCalc: { bar: 45, plates: [] }
+    plateCalc: { bar: 45, plates: [], target: null }
   };
 
   // ===== SANDBOX =====
@@ -728,6 +728,10 @@ Store.saveActiveWorkout({
   // jumping a version. Add a new entry at the top for every release that has
   // notes; a release without notes adds nothing and shows nothing.
   const RELEASES = [
+    { id: 'v0.36', items: [
+      ['Plates match your weight', 'The plate calculator opens already loaded for the weight in the box, heaviest plates first. If the plates can\u2019t make it exactly, it shows the closest weights either side.'],
+      ['Reps reset each set', 'Every new set starts back on the rep target, so a short set doesn\u2019t make you forget what you were aiming for.'],
+    ] },
     { id: 'v0.35', items: [
       ['Workout recap', 'The finish screen now shows how each move went against the last time you did that day: up, level or down, plus your PRs, moves and sets. Power days compare your best set; the other days compare volume, so trading weight for reps still counts, and show the total weight moved.'],
       ['End shows it too', 'Ending a workout early takes you to the recap as well, with the moves you didn\u2019t get to listed at the bottom.'],
@@ -1887,7 +1891,15 @@ Store.saveActiveWorkout({
 
     // Build rep options (or seconds for time-tracked exercises)
     const isTimeMode = ex.trackMode === 'time';
-    const repsValue = isTimeMode ? 0 : (editingSet ? (parseInt(editingSet.reps) || 0) : (log.sets.length > 0 ? (parseInt(log.sets[log.sets.length - 1].reps) || getDefaultReps(ex.reps)) : getDefaultReps(ex.reps)));
+    // Every new set opens on the program's rep target (v0.36), so a short set
+    // doesn't hide what you were aiming for. "To failure" and "max" moves have
+    // no target, so they carry the last set's count instead.
+    const hasRepTarget = /\d/.test(String(ex.reps));
+    const lastReps = log.sets.length > 0 ? parseInt(log.sets[log.sets.length - 1].reps) : 0;
+    const repsValue = isTimeMode ? 0
+      : editingSet ? (parseInt(editingSet.reps) || 0)
+      : (!hasRepTarget && lastReps) ? lastReps
+      : getDefaultReps(ex.reps);
     const lastSeconds = isTimeMode ? (editingSet ? editingSet.reps : (log.sets.length > 0 ? log.sets[log.sets.length - 1].reps : 30)) : 0;
     const allSetsDone = currentSet >= numSets;
 
@@ -3899,9 +3911,35 @@ Store.saveActiveWorkout({
   // tap a plate on the bar graphic to pull that pair back off.
   const PLATE_SIZES = [45, 35, 25, 15, 10, 5];
 
+  // Opens loaded to the number in the weight box (v0.36), which is last time's
+  // weight on the first set. Plates go heaviest first. With no 2.5s, a weight
+  // the plates can't make exactly loads the closest below and says so.
   function openPlateCalc() {
+    const input = document.getElementById('weight-input');
+    const target = input ? parseFloat(input.value) : NaN;
+    state.plateCalc.target = target > 0 ? target : null;
+    if (state.plateCalc.target) solvePlates();
     renderPlateCalc();
     showPanel('plate-panel');
+  }
+
+  function solvePlates() {
+    const pc = state.plateCalc;
+    let left = (pc.target - pc.bar) / 2;
+    const plates = [];
+    for (const p of PLATE_SIZES) {
+      while (left >= p - 1e-9) { plates.push(p); left -= p; }
+    }
+    pc.plates = plates;
+  }
+
+  // The line under the bar when the plates can't hit the weight box exactly.
+  function plateMissNote(pc, total, unit) {
+    if (!pc.target || Math.abs(total - pc.target) < 1e-9) return '';
+    const t = fmtLoad(pc.target);
+    if (pc.target < pc.bar) return `${t} ${unit} is lighter than the bar`;
+    const step = PLATE_SIZES[PLATE_SIZES.length - 1] * 2;
+    return `No exact match for ${t} ${unit}. Closest: ${fmtLoad(total)} or ${fmtLoad(total + step)}`;
   }
 
   function closePlateCalc() {
@@ -3914,6 +3952,7 @@ Store.saveActiveWorkout({
     const total = pc.bar + perSide * 2;
     const day = activeDay();
     const typeClass = toneClass(day);
+    const miss = plateMissNote(pc, total, state.weightUnit);
 
     const content = document.getElementById('plate-panel-content');
     if (!content) return;
@@ -3927,7 +3966,7 @@ Store.saveActiveWorkout({
         ${pc.plates.map((p, i) => `<div class="plate-viz-plate p${p}" onclick="FORGE.plateRemoveAt(${i})">${p}</div>`).join('')}
         <div class="plate-viz-sleeve"></div>
       </div>
-      <div class="plate-hint">${pc.plates.length > 0 ? 'Tap a plate to remove it from both sides' : 'Tap a weight below to load the bar'}</div>
+      ${miss ? `<div class="plate-hint plate-miss">${miss}</div>` : `<div class="plate-hint">${pc.plates.length > 0 ? 'Tap a plate to remove it from both sides' : 'Tap a weight below to load the bar'}</div>`}
       <div class="plate-btn-row">
         ${PLATE_SIZES.map(p => `<button class="plate-btn ${typeClass}" onclick="FORGE.plateAdd(${p})">${p}</button>`).join('')}
       </div>
@@ -3943,23 +3982,29 @@ Store.saveActiveWorkout({
     `;
   }
 
+  // Loading or pulling plates by hand drops the target: the bar is yours now.
   function plateAdd(w) {
+    state.plateCalc.target = null;
     state.plateCalc.plates.push(w);
     state.plateCalc.plates.sort((a, b) => b - a); // heaviest closest to the bar
     renderPlateCalc();
   }
 
   function plateRemoveAt(i) {
+    state.plateCalc.target = null;
     state.plateCalc.plates.splice(i, 1);
     renderPlateCalc();
   }
 
+  // Switching bars re-solves for the same weight while it's still the target.
   function plateBar(w) {
     state.plateCalc.bar = w;
+    if (state.plateCalc.target) solvePlates();
     renderPlateCalc();
   }
 
   function plateClear() {
+    state.plateCalc.target = null;
     state.plateCalc.plates = [];
     renderPlateCalc();
   }
