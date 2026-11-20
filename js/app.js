@@ -728,6 +728,11 @@ Store.saveActiveWorkout({
   // jumping a version. Add a new entry at the top for every release that has
   // notes; a release without notes adds nothing and shows nothing.
   const RELEASES = [
+    { id: 'v0.35', items: [
+      ['Workout recap', 'The finish screen now shows how each move went against the last time you did that day: up, level or down, plus your PRs, moves and sets. Power days compare your best set; the other days compare volume, so trading weight for reps still counts, and show the total weight moved.'],
+      ['End shows it too', 'Ending a workout early takes you to the recap as well, with the moves you didn\u2019t get to listed at the bottom.'],
+      ['Recaps on the calendar', 'Tap a day on the calendar, then Recap beside any workout you logged, to see that session again.'],
+    ] },
     { id: 'v0.34', items: [
       ['Records fix themselves', 'Edit a set or delete a workout and that move\u2019s record is worked out again from what you logged. A typo no longer leaves a record you can\u2019t beat.'],
       ['No more e1RM', 'Records, history and the PR screen show the set you actually did. The estimated one-rep max is gone.'],
@@ -1417,13 +1422,16 @@ Store.saveActiveWorkout({
         const d = dayById(c.dayId);
         const nm = c.type === 'rest' ? 'Rest day' : (d ? d.name : c.dayId);
         const sz = c.type === 'rest' ? '' : ` · ${c.size || 'normal'}`;
+        const uid = entryUid(c).replace(/'/g, "\\'");
+        const info = `
+              <div class="sheet-row-name">${nm}</div>
+              <div class="sheet-row-detail">${labelFor(c)}${sz}${c.manual ? ' · added manually' : ''}</div>`;
         return `
           <div class="sheet-row">
-            <div>
-              <div class="sheet-row-name">${nm}</div>
-              <div class="sheet-row-detail">${labelFor(c)}${sz}${c.manual ? ' · added manually' : ''}</div>
-            </div>
-            <button class="sheet-del" onclick="FORGE.clearDayEntry('${entryUid(c).replace(/'/g, "\\'")}')">
+            ${logForEntry(c)
+              ? `<button class="sheet-recap" onclick="FORGE.openRecap('${uid}')" aria-label="${nm} recap"><div>${info}</div><span class="sheet-recap-go">Recap <i class="ti ti-chevron-right"></i></span></button>`
+              : `<div>${info}</div>`}
+            <button class="sheet-del" onclick="FORGE.clearDayEntry('${uid}')">
               <i class="ti ti-trash"></i>
             </button>
           </div>`;
@@ -2271,6 +2279,9 @@ Store.saveActiveWorkout({
   }
 
   function completeWorkout() {
+    stopTimer();
+    stopStopwatch();
+    state.editingSetIndex = null;
     state.workoutPhase = 'complete';
     saveWorkoutToStorage();
     persistWorkoutState();
@@ -2278,38 +2289,179 @@ Store.saveActiveWorkout({
     renderWorkoutView();
   }
 
+  // End goes to the recap too (v0.35), as long as something was logged.
   function endWorkout() {
-    if (confirm('End workout? Logged sets will be saved.')) {
-      if (state.activeWorkoutLog.exercises.some(e => e.sets.length > 0)) {
-        saveWorkoutToStorage();
-      }
+    if (!confirm('End workout? Logged sets will be saved.')) return;
+    if (state.activeWorkoutLog.exercises.some(e => e.sets.length > 0)) {
+      completeWorkout();
+    } else {
       resetWorkoutState();
       renderTab('home');
     }
   }
 
-  function renderComplete(el) {
-    const day = dayById(state.activeWorkoutLog.dayId) || nextDay();
-    const typeClass = toneClass(day);
-    const totalSets = state.activeWorkoutLog.exercises.reduce((sum, e) => sum + e.sets.length, 0);
-    const totalReps = state.activeWorkoutLog.exercises.reduce((sum, e) =>
-      sum + e.sets.reduce((s, set) => s + (set.reps || 0), 0), 0);
-    const durationMs = state.workoutStartTime ? Date.now() - state.workoutStartTime : 0;
-    const durationMin = Math.round(durationMs / 60000);
+  // ===== RECAP (v0.35) =====
+  // The FORGED screen is a recap: every move against the last time this same
+  // day was run (or the move's last session anywhere, if this day never had
+  // it). Power days compare the best set; every other day compares volume, so
+  // dropping the weight for more reps doesn't read as going backwards. It is
+  // all worked out from the log, so nothing new is stored.
+  function recapData(entry) {
+    const day = dayById(entry.dayId) || nextDay();
+    const curT = Date.parse(entry.completedAt);
+    const metric = day.type === 'power' ? 'top' : 'volume';
+    const prevSame = [].concat(Store.getLogs()[entry.dayId] || [])
+      .filter(e => e && e.completedAt && Date.parse(e.completedAt) < curT)
+      .sort((a, b) => Date.parse(a.completedAt) - Date.parse(b.completedAt))
+      .pop() || null;
 
-    el.innerHTML = `
-      <div class="complete-screen ${typeClass}">
-        <div class="complete-icon"><i class="ti ti-check"></i></div>
-        <div class="complete-title">Forged</div>
-        <div class="complete-detail">${day.name} · ${day.label} complete</div>
-        <div class="complete-stats">
-          <div><span class="cs-v">${durationMin > 0 ? durationMin : '—'}</span><span class="cs-l">Minutes</span></div>
-          <div><span class="cs-v">${totalSets}</span><span class="cs-l">Sets</span></div>
-          <div><span class="cs-v">${totalReps}</span><span class="cs-l">Reps</span></div>
+    const rows = [], notDone = [];
+    let up = 0, level = 0, down = 0, prs = 0, sets = 0;
+    let loadNow = 0, loadCmpNow = 0, loadCmpThen = 0;
+
+    (entry.exercises || []).forEach(exLog => {
+      const n = (exLog.sets || []).length;
+      sets += n;
+      if (!n) { if (!exLog.added) notDone.push(exLog.name); return; }
+      const ex = exDef(exLog.id);
+      const row = { name: exLog.name, added: !!exLog.added, now: '', last: '', dir: '', delta: '', pr: false };
+      rows.push(row);
+      if (isCardio(ex)) { row.now = String(exLog.sets[0].display || ''); return; }
+
+      const h = exerciseHistory(exLog.id);
+      const cur = h.sessions.find(x => x.t === curT);
+      if (!cur) { row.now = String(exLog.sets[0].display || ''); return; }
+      row.now = histTopLabel(h.kind, cur);
+      // A 0 lb set can't be a record (v0.34), so it can't be a PR here either.
+      row.pr = cur.isPR && !(h.kind === 'load' && cur.top.score <= 0);
+      if (row.pr) prs++;
+      const weighted = h.kind === 'load' || h.kind === 'added';
+      if (weighted) loadNow += cur.vol;
+
+      const before = h.sessions.filter(x => x.t < curT);
+      const prev = before.filter(x => x.dayId === entry.dayId).pop() || before[before.length - 1];
+      if (!prev) { row.last = 'first log'; return; }
+      row.last = 'last ' + histTopLabel(h.kind, prev);
+      const d = histDelta(h, metric, prev, cur);
+      row.dir = d.dir;
+      row.delta = d.short + (metric === 'volume' && d.dir !== 'flat' ? ' vol' : '');
+      if (d.dir === 'up') up++; else if (d.dir === 'down') down++; else level++;
+      if (weighted) { loadCmpNow += cur.vol; loadCmpThen += prev.vol; }
+    });
+
+    const loadPct = loadCmpThen > 0 ? Math.round((loadCmpNow - loadCmpThen) / loadCmpThen * 100) : null;
+    const planned = (entry.exercises || []).filter(e => !e.added || e.sets.length).length;
+    return { day, metric, prevSame, rows, notDone, up, level, down, prs, sets,
+             moves: rows.length, planned, early: notDone.length > 0, loadNow, loadPct };
+  }
+
+  function renderComplete(el) {
+    const entry = state.recapEntry;
+    if (!entry) { finishAndGoHome(); return; }
+    el.innerHTML = recapHtml(entry, false);
+  }
+
+  // past = opened from the calendar: no Next up, no Done (the sheet closes it),
+  // and the date goes in the subtitle since the workout wasn't today.
+  function recapHtml(entry, past) {
+    const r = recapData(entry);
+    const typeClass = toneClass(r.day);
+    const size = entry.size ? entry.size.charAt(0).toUpperCase() + entry.size.slice(1) : '';
+    const when = past ? `${histDate(Date.parse(entry.completedAt))} · ` : '';
+    const sub = `${when}${r.day.name} · ${r.day.label} · ${r.early ? 'Ended early' : size}`;
+    const mins = entry.durationMin > 0 ? entry.durationMin : '—';
+    const compared = r.up + r.level + r.down;
+    const arrow = { up: '↑', flat: '→', down: '↓' };
+
+    const rows = r.rows.map(row => `
+      <div class="rc-row">
+        <div class="rc-move">
+          <div class="rc-name">${row.name}</div>
+          <div class="rc-sets"><span class="rc-now">${row.now}</span>${row.last ? ` · ${row.last}` : ''}</div>
         </div>
-        <button class="complete-btn" onclick="FORGE.finishAndGoHome()">Done <i class="ti ti-check"></i></button>
+        <div class="rc-right">
+          ${row.pr ? '<span class="rc-pr">PR</span>' : ''}
+          ${row.dir ? `<span class="rc-delta ${row.dir}">${row.delta}</span>` : ''}
+          ${row.added && !row.dir ? '<span class="rc-added">Added</span>' : ''}
+        </div>
+      </div>`).join('');
+
+    let timeLine = '';
+    if (!r.early && r.prevSame && r.prevSame.durationMin > 0 && entry.durationMin > 0) {
+      const diff = r.prevSame.durationMin - entry.durationMin;
+      timeLine = diff > 0 ? `${diff} faster` : diff < 0 ? `${-diff} slower` : 'same as last';
+    }
+    const next = nextDay();
+
+    return `
+      <div class="recap ${typeClass}${past ? ' past' : ''}">
+        <div class="rc-head">
+          <div class="rc-icon"><i class="ti ti-check"></i></div>
+          <div class="rc-title-wrap">
+            <div class="rc-title">${r.early ? 'Logged' : 'Forged'}</div>
+            <div class="rc-sub">${sub}</div>
+          </div>
+        </div>
+
+        <div class="rc-stats">
+          <div><span class="cs-v">${mins}</span><span class="cs-l">Min</span></div>
+          <div><span class="cs-v">${r.moves}${r.early ? `<span class="rc-of">/${r.planned}</span>` : ''}</span><span class="cs-l">Moves</span></div>
+          <div><span class="cs-v">${r.sets}</span><span class="cs-l">Sets</span></div>
+          <div class="rc-prs${r.prs ? ' on' : ''}"><span class="cs-v">${r.prs}</span><span class="cs-l">${r.prs === 1 ? 'PR' : 'PRs'}</span></div>
+        </div>
+
+        ${compared ? `
+        <div class="rc-score">
+          <div class="rc-label">Vs ${r.prevSame ? `last ${r.day.name} · ${histDate(Date.parse(r.prevSame.completedAt))}` : 'last time'}${r.metric === 'volume' ? ' · by volume' : ' · by best set'}</div>
+          <div class="rc-bar">
+            ${r.up ? `<div class="up" style="flex-grow:${r.up}"></div>` : ''}
+            ${r.level ? `<div class="flat" style="flex-grow:${r.level}"></div>` : ''}
+            ${r.down ? `<div class="down" style="flex-grow:${r.down}"></div>` : ''}
+          </div>
+          <div class="rc-counts">
+            <span class="up">↑ ${r.up} up</span><span class="flat">→ ${r.level} level</span><span class="down">↓ ${r.down} down</span>
+          </div>
+        </div>` : ''}
+
+        <div class="rc-list">${rows}</div>
+
+        ${r.notDone.length ? `
+        <div class="rc-notdone">
+          <div class="rc-label">Not done · ${r.notDone.length}</div>
+          <div class="rc-notdone-list">${r.notDone.join(', ')}</div>
+        </div>` : ''}
+
+        <div class="rc-foot">
+          ${r.loadNow > 0 && r.metric === 'volume' ? `<div><span>Load moved</span><span class="rc-fv">${r.loadNow.toLocaleString('en-US')} lb${r.loadPct ? ` <b class="${r.loadPct > 0 ? 'up' : 'down'}">${r.loadPct > 0 ? '↑' : '↓'} ${Math.abs(r.loadPct)}%</b>` : ''}</span></div>` : ''}
+          <div><span>Time</span><span class="rc-fv">${mins} min${timeLine ? ` <i class="rc-dim">${timeLine}</i>` : ''}</span></div>
+          ${past ? '' : `<div><span>Next up</span><span class="rc-fv">${next.name} · ${next.label}</span></div>`}
+        </div>
+
+        ${past ? '' : '<button class="complete-btn" onclick="FORGE.finishAndGoHome()">Done <i class="ti ti-check"></i></button>'}
       </div>
     `;
+  }
+
+  // The log entry behind a calendar entry, or null (manual marks and rest
+  // days have none).
+  function logForEntry(c) {
+    if (!c || c.manual || !c.dayId || c.dayId === 'rest') return null;
+    return [].concat(Store.getLogs()[c.dayId] || []).find(l => l.completedAt === c.completedAt) || null;
+  }
+
+  // Calendar → day sheet → a logged workout → its recap (v0.35).
+  function openRecap(uid) {
+    const c = Store.getCompletedDays().find(x => entryUid(x) === uid);
+    const entry = logForEntry(c);
+    if (!entry) return;
+    const back = state._sheetDate;
+    const panel = document.getElementById('info-panel');
+    document.getElementById('info-panel-content').innerHTML = `
+      ${back ? `<button class="rc-back" onclick="FORGE.openDaySheet('${back}')"><i class="ti ti-chevron-left"></i> Back</button>` : ''}
+      ${recapHtml(entry, true)}
+    `;
+    if (panel) panel.scrollTop = 0;
+    showPanel('info-panel');
   }
 
   function finishAndGoHome() {
@@ -2327,6 +2479,7 @@ Store.saveActiveWorkout({
     state.skippedExercises = [];
     state.activeWorkoutLog = null;
     state.workoutStartTime = null;
+    state.recapEntry = null;
     stopTimer();
     stopStopwatch();
     persistWorkoutState();
@@ -2348,6 +2501,7 @@ Store.saveActiveWorkout({
     if (!logs[state.activeWorkoutLog.dayId]) logs[state.activeWorkoutLog.dayId] = [];
     logs[state.activeWorkoutLog.dayId].push(logEntry);
     Store.saveLogs(logs);
+    state.recapEntry = logEntry;   // the recap reads this (v0.35)
 
     // Save completed day for calendar. Keyed by timestamp, not date, so a
     // second session the same day sits alongside the first instead of over it.
@@ -2898,6 +3052,7 @@ Store.saveActiveWorkout({
     }
     const diff = Math.round((b.top.score - a.top.score) * 10) / 10;
     const dr = b.top.reps - a.top.reps;
+    const rp = n => (Number(n) === 1 ? 'rep' : 'reps');   // "1 rep", not "1 reps" (v0.35)
     const up = diff > 0 ? '↑' : '↓';
     const amt = fmtLoad(Math.abs(diff));
     if (h.kind === 'time') {
@@ -2906,7 +3061,7 @@ Store.saveActiveWorkout({
     }
     if (h.kind === 'reps') {
       if (!diff) return out('flat', 'Level' + since, '→ level');
-      return out(diff > 0 ? 'up' : 'down', `${up} ${diff > 0 ? '+' : '−'}${amt} reps best set${since}`, `${up} ${amt} reps`);
+      return out(diff > 0 ? 'up' : 'down', `${up} ${diff > 0 ? '+' : '−'}${amt} ${rp(amt)} best set${since}`, `${up} ${amt} ${rp(amt)}`);
     }
     if (diff) {
       let long;
@@ -2923,7 +3078,7 @@ Store.saveActiveWorkout({
     }
     if (!dr) return out('flat', 'Level' + since, '→ level');
     const ru = dr > 0 ? '↑' : '↓';
-    return out(dr > 0 ? 'up' : 'down', `${ru} ${dr > 0 ? '+' : '−'}${Math.abs(dr)} reps at the same load${since}`, `${ru} ${Math.abs(dr)} reps`);
+    return out(dr > 0 ? 'up' : 'down', `${ru} ${dr > 0 ? '+' : '−'}${Math.abs(dr)} ${rp(Math.abs(dr))} at the same load${since}`, `${ru} ${Math.abs(dr)} ${rp(Math.abs(dr))}`);
   }
 
   // The Trend card: change over the last three sessions of this move, from any
@@ -4453,6 +4608,7 @@ Store.saveActiveWorkout({
     showWarmupInfo,
     ackRelease,
     openHistory,
+    openRecap,
     histMetric,
     histRange,
     histPick,
