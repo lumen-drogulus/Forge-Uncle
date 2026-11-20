@@ -1320,7 +1320,7 @@ button { font: inherit; color: inherit; }
 .hist-pill.top { border-color: var(--text-muted); color: var(--text-primary); }
 .hist-list { display: flex; flex-direction: column; }
 .hist-list-head { display: flex; justify-content: space-between; }
-.hist-row {
+.hist-list .hist-row {
   height: 44px;
   display: grid;
   grid-template-columns: 58px 30px minmax(0, 1fr) auto;
