@@ -714,6 +714,7 @@ function draw3D(J, cam, mus, items = [], ghost = false) {
       const A = P(kn), Bp = P(an);
       K.shaded(capsule(A, Bp, 6, 3.8), tone, A, Bp, 6);
       if (sideOn) M("calves", spindle(A, Bp, 6, 3.8, 0.07, 0.6, -sideTo(A, Bp, J.ant), 1.15, 0.62));
+      if (sideOn) M("shins", spindle(A, Bp, 6, 3.8, 0.08, 0.72, sideTo(A, Bp, J.ant), 0.95, 0.6));   // front of the shin (v0.38)
     }, "shin" + S);
     item((D(J["heel" + S]) + D(J["toe" + S])) / 2, () => {
       const A = P(J["heel" + S]), Bp = P(J["toe" + S]);

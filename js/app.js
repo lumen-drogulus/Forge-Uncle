@@ -175,8 +175,19 @@
 
   function isCardio(ex) { return !!ex && ex.trackMode === 'cardio'; }
 
+  // Every exercise object the app knows: each day's list in turn, then the
+  // library (moves on no day, v0.38). A move on several days appears once
+  // per day; the first one found is the one exDef() hands back.
+  function allMoveDefs() {
+    const out = [];
+    Object.keys(FORGE_DATA.workouts).forEach(wid => {
+      (FORGE_DATA.workouts[wid].exercises || []).forEach(ex => out.push(ex));
+    });
+    return out.concat(FORGE_DATA.library || []);
+  }
+
   // Every move the app knows, once each: cardio first, then grouped under
-  // the first workout that uses it.
+  // the first workout that uses it, then the library as "More moves".
   function addCatalog() {
     const seen = {};
     const groups = [];
@@ -193,6 +204,8 @@
       });
       if (items.length) groups.push({ label: d.name, items: items });
     });
+    const more = (FORGE_DATA.library || []).filter(e => !seen[e.id]);
+    if (more.length) groups.push({ label: 'More moves', items: more });
     return groups;
   }
 
@@ -729,6 +742,11 @@ Store.saveActiveWorkout({
   // jumping a version. Add a new entry at the top for every release that has
   // notes; a release without notes adds nothing and shows nothing.
   const RELEASES = [
+    { id: 'v0.38', items: [
+      ['Neck work is out', 'No pre-made workout has neck moves now. Each slot got a move that fits its day: lateral raises on Push A (Overhead Tricep Extension takes their old Extended spot), cable lateral raises on Push B, dead bugs on Pull A, Pallof press on Pull B, tibialis raises on Legs A, reverse crunches on Legs B, core work on the calisthenics days, and rear delt flyes and hip thrusts on Back & Core.'],
+      ['Neck moves still there', 'All four neck moves are in Add exercise under More moves. Your history and records for them are untouched.'],
+      ['Two new moves', 'Cable Lateral Raise and Tibialis Raise, each with an animated demo.'],
+    ] },
     { id: 'v0.37', items: [
       ['Kettlebell day', 'A new full-body day in the workout picker, under Extra: swings, goblet squats, presses, rows, cleans, lunges, carries and, on Extended, the Turkish get-up and windmill. It\u2019s a bonus like Back & Core, so it leaves the cycle where it is unless you flip the toggle.'],
       ['Eight new moves', 'Goblet Squat, Single-Arm KB Press, Single-Arm KB Row, Single-Arm KB Floor Press, Kettlebell Clean, Front-Rack Reverse Lunge, Turkish Get-Up and Kettlebell Windmill, each with an animated demo. All eight are also in Add exercise. Log the weight of one bell.'],
@@ -1729,7 +1747,7 @@ Store.saveActiveWorkout({
   // trends and prefill all read the number you typed.
   const PAIRED_IDS = (() => {
     const ids = new Set();
-    Object.values(FORGE_DATA.workouts).forEach(w => (w.exercises || []).forEach(e => { if (e.pair) ids.add(e.id); }));
+    allMoveDefs().forEach(e => { if (e.pair) ids.add(e.id); });
     return ids;
   })();
 
@@ -2610,9 +2628,7 @@ Store.saveActiveWorkout({
   function migratePRs() {
     const prs = Store.getPRs();
     const byId = {};
-    Object.keys(FORGE_DATA.workouts).forEach(wid => {
-      (FORGE_DATA.workouts[wid].exercises || []).forEach(ex => { byId[ex.id] = ex; });
-    });
+    allMoveDefs().forEach(ex => { byId[ex.id] = ex; });
 
     let changed = false;
     Object.keys(prs).forEach(id => {
@@ -2663,10 +2679,8 @@ Store.saveActiveWorkout({
   // The pick is now saved per exercise and applied everywhere that id appears.
   function applyBwModes() {
     const modes = Store.getSettings().bwModes || {};
-    Object.keys(FORGE_DATA.workouts).forEach(wid => {
-      (FORGE_DATA.workouts[wid].exercises || []).forEach(ex => {
-        if (modes[ex.id]) ex.weightMode = modes[ex.id];
-      });
+    allMoveDefs().forEach(ex => {
+      if (modes[ex.id]) ex.weightMode = modes[ex.id];
     });
   }
 
@@ -2942,11 +2956,7 @@ Store.saveActiveWorkout({
   const HIST_MIN_POINTS = 3;
 
   function exDef(id) {
-    for (const wid of Object.keys(FORGE_DATA.workouts)) {
-      const ex = (FORGE_DATA.workouts[wid].exercises || []).find(e => e.id === id);
-      if (ex) return ex;
-    }
-    return (FORGE_DATA.cardio || []).find(e => e.id === id) || null;
+    return allMoveDefs().find(e => e.id === id) || (FORGE_DATA.cardio || []).find(e => e.id === id) || null;
   }
 
   // One logged set, read the way it was shown when it was logged. On sets from
@@ -4218,9 +4228,7 @@ Store.saveActiveWorkout({
     // Show each record under the exercise's current name from data.js, so a
     // rename reaches old records too. Falls back to the stored name.
     const names = {};
-    Object.keys(FORGE_DATA.workouts).forEach(wid => {
-      (FORGE_DATA.workouts[wid].exercises || []).forEach(ex => { names[ex.id] = ex.name; });
-    });
+    allMoveDefs().forEach(ex => { if (!names[ex.id]) names[ex.id] = ex.name; });
     const all = Object.keys(prs).map(id => Object.assign({ id: id }, prs[id], names[id] ? { name: names[id] } : {}));
 
     if (all.length === 0) {

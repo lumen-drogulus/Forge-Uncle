@@ -5949,5 +5949,109 @@ const RACK_DIR = J => n3(a3(a3(m3(J.s, -0.55), m3(J.ant, -0.25)), m3(J.lat, -0.8
   void FIG;
 })();
 
+/* =========================================================
+   v0.38 · neck work leaves the days: two new moves
+   cable-lateral-raise (Push B), tibialis-raise (Legs A)
+   ========================================================= */
+
+/* ---- Cable lateral raise (front): side-on to a low pulley on the body's right, handle in the far (left)
+   hand so the cable crosses in front. Soft elbow, raise out to shoulder height, three counts down ---- */
+(() => {
+  const cam = camera3(8, 150, FLOOR_C, 0), P = cam.P;
+  const PUL = [44, 13, 17];                                  // low pulley on the tower's face, toward the lifter
+  const TOWER = { mn: [45, 0, -4], mx: [67, 206, 20] };
+  // the working arm, driven by angles from the shoulder: a = abduction (0 = hanging, - = across the front),
+  // a fixed soft elbow. Exact lengths, so nothing flips
+  const armAt = (J, s) => {
+    const a = lerp(-16, 88, s), fz = lerp(0.42, 0.22, s);
+    const dU = n3([-Math.sin(a * D2R), -Math.cos(a * D2R), fz]);
+    const fw = n3([0, 0.3, 1]), bend = n3(s3(fw, m3(dU, d3(fw, dU))));
+    const dF = n3(a3(m3(dU, Math.cos(14 * D2R)), m3(bend, Math.sin(14 * D2R))));
+    const E = a3(J.shL, m3(dU, B.ua));
+    return { E, G: a3(E, m3(dF, B.grip - 0.6)) };
+  };
+  const spec = p => ({
+    pelvis: [0, 90.8, 0], spine: [0, 1, 0], head: 0, legs: standLegsFront(0, 13),
+    arms: J => {
+      const A = armAt(J, p.s);
+      return {
+        L: via(J, "L", A.E, A.G),
+        R: { at: [TOWER.mn[0] - 1, 112, 7], pole: n3([0.25, -1, -0.6]) },
+      };
+    },
+  });
+  const FIG = {
+    id: "cable-lateral-raise", view: "FRONT",
+    frame: { k: 1.08, cx: 146, cy: 160 },
+    keys: { down: { s: 0 }, up: { s: 1 } },
+    seq: [
+      { label: "Raise", dur: 1.1, from: "down", to: "up", ease: "inOut", effort: 1 },
+      { label: "Hold", dur: 0.35, from: "up", to: "up", effort: 1 },
+      { label: "Lower 3", dur: 3, from: "up", to: "down", ease: "inOut", effort: 0.75 },
+      { label: "Reset", dur: 0.4, from: "down", to: "down", effort: 0.3 },
+    ],
+    ghostKey: "up",
+    muscles: { deltsL: 1 },
+    build(p, ctx) {
+      const J = solve3(spec(p)), yF = P([0, 0, 0])[1];
+      const g = J.gripL;
+      const items = [
+        { depth: cam.depth([56, 100, 8]) - 40, tag: "tower", els: box3(cam, TOWER.mn, TOWER.mx, "iron-dim") },
+        { depth: cam.depth(PUL) - 30, tag: "pulley", els: [pth(circle(P(PUL), 4), "iron")] },
+        { depth: 999, tag: "cable", els: [pth(`M${P2(P(PUL))}L${P2(P(g))}`, "cable"), pth(circle(P(g), 3), "iron")] },
+      ];
+      const high = p.s > 0.96, y = P(J.shL)[1] - 1;
+      const back = [...floorEls(yF, 20, 280), floorShadow(ctx, 150, yF, 36, 0.8, 0.3), cueLine([22, y], [278, y], high)];
+      const els = back.concat(draw3D(J, cam, ctx.mus, items));
+      return { els, J, count: "LEFT ARM", labels: [
+        { at: [24, y - 6], text: "SHOULDER HEIGHT", on: high, anchor: "start" },
+        { at: [P(J.head)[0] - 22, P(J.head)[1] - 8], text: "NO SHRUG", on: false, anchor: "end" },
+      ] };
+    },
+  };
+  calib(cam, FIG); FIGS.push(FIG);
+})();
+
+/* ---- Tibialis raise (side): back flat on a wall, heels a foot out, legs straight. The feet pivot on
+   the heels: toes pull up as high as they go, pause, two counts down to a light touch ---- */
+(() => {
+  const WALL = -40;
+  const PX = WALL + 14.2, HX = WALL + 30;                    // buttocks and upper back on the wall; heels a foot out
+  const HC = { R: [HX, 4.2, -11], L: [HX, 4.2, 11] };        // heel centres, planted
+  const a0 = ankleOnHeel(HC.L, 0);
+  const PY = a0[1] + Math.sqrt((LEGLEN - 1.2) ** 2 - (a0[0] - PX) ** 2);
+  const S0 = tilt2(-2);
+  const spec = p => {
+    const legs = {};
+    for (const S of ["R", "L"]) legs[S] = legAt(ankleOnHeel(HC[S], p.th), p.th, [1, 0.15, 0]);
+    return { pelvis: [PX, PY, 0], spine: S0, lat: FACE_RIGHT, head: 0, legs, arms: hangingArms(3, 21) };
+  };
+  sideMove({
+    id: "tibialis-raise", frame: { k: 1.2, cx: 140, cy: 160 }, shadowR: 26, shadowX: -6,
+    keys: { low: { th: 0 }, high: { th: -30 } }, ghostKey: "high",
+    seq: [
+      { label: "Toes up", dur: 0.8, from: "low", to: "high", ease: "inOut", effort: 1 },
+      { label: "Hold", dur: 0.5, from: "high", to: "high", effort: 1 },
+      { label: "Lower 2", dur: 2, from: "high", to: "low", ease: "inOut", effort: 0.7 },
+      { label: "Touch", dur: 0.3, from: "low", to: "low", effort: 0.3 },
+    ],
+    muscles: { shins: 1 },
+    spec,
+    draw(J, p, ctx, P) {
+      const yF = P([0, 0, 0])[1], w = P([WALL, 0, 0]), high = p.th < -27;
+      const heel = P([HC.L[0] - 2, 0, 0]), toe = P(J.toeL);
+      return {
+        back: [pth(roundRect(w[0] - 5, yF - 190, 5, 190, 0.5), "iron-dim")],
+        dots: [{ at: [heel[0], yF - 1.5], on: true }],
+        labels: [
+          { at: [toe[0] + 8, toe[1] - 20], text: "TOES HIGH", on: high, anchor: "start" },
+          { at: [P(J.toeL)[0] + 8, yF - 4], text: "HEELS STAY", on: true, anchor: "start" },
+          { at: [w[0] - 10, P(J.shoulder)[1] + 6], text: "BACK ON WALL", on: true, anchor: "end" },
+        ],
+      };
+    },
+  });
+})();
+
 FIGS.forEach(f => F.define(f));
 })(window.ForgeFigures);

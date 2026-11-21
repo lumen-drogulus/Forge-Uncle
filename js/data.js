@@ -142,7 +142,7 @@ const MOVES = {
     name: "Prone Neck Extension",
     weightMode: "free",
     video: "https://www.youtube.com/results?search_query=lying+weighted+neck+extension+tutorial",
-    tip: "Face-down, head off the end of the bench. Look up slowly, lower for three counts. Log 0 until bodyweight is 3 sets of 20. Then a 5 lb plate wrapped in a towel on the back of the head, back down to 8-10 reps, build to 20, then 10 lbs. Pairs with neck flexion on the push days so the neck gets balanced work front and back. Sharp pain or tingling means stop, not push through.",
+    tip: "Face-down, head off the end of the bench. Look up slowly, lower for three counts. Log 0 until bodyweight is 3 sets of 20. Then a 5 lb plate wrapped in a towel on the back of the head, back down to 8-10 reps, build to 20, then 10 lbs. Pairs with neck flexion so the neck gets balanced work front and back. Sharp pain or tingling means stop, not push through.",
   },
   "dead-hang": {
     name: "Dead Hangs",
@@ -209,6 +209,12 @@ const MOVES = {
     video: "https://www.youtube.com/results?search_query=pallof+press+form",
     tip: "Cable or band at chest height, stand side-on, press straight out and resist the rotation. Nothing moves except your arms. Log the reps for one side, then match them on the other. This is anti-rotation work, which is the half of core training almost everyone skips.",
   },
+  "tibialis-raise": {
+    name: "Tibialis Raise",
+    weightMode: "bw",
+    video: "https://www.youtube.com/results?search_query=tibialis+raise+against+wall+form",
+    tip: "Back flat on a wall, heels about a foot out, legs straight. Pull the toes up as high as they go, pause, then lower for two counts and just touch the floor before the next rep. Heels never leave the floor. It works the front of the shin, which nothing else in the program does. Easy at 20: walk the feet further out, then go one leg at a time.",
+  },
   "side-neck-raise": {
     name: "Side Neck Raise",
     weightMode: "free",
@@ -229,6 +235,12 @@ const MOVES = {
     pair: true,
     video: "https://www.youtube.com/watch?v=8iPEnn-ltC8",
     tip: "Set bench to 30-degree incline. Three-count descent on every rep. Squeeze at the top without clanking the dumbbells together. Shifts emphasis to upper chest and front delts.",
+  },
+  "cable-lateral-raise": {
+    name: "Cable Lateral Raise",
+    weightMode: "free",
+    video: "https://www.youtube.com/results?search_query=single+arm+cable+lateral+raise+form",
+    tip: "Stand side-on to a low pulley, handle in the far hand so the cable runs across the front of the body. Soft elbow, raise out to the side until the hand reaches shoulder height, then lower for three counts. The cable keeps tension at the bottom where dumbbells go slack, so start lighter than your dumbbell laterals. No lean, no shrug. Do both arms and log the reps for one.",
   },
   "cable-flyes": {
     name: "Cable Flyes",
@@ -634,10 +646,10 @@ const FORGE_DATA = {
         ["weighted-dips-a", { tier: 1, sets: 3, reps: "6-8", rpe: "8", rest: 60 }],
         ["cg-bench-press", { tier: 1, sets: 3, reps: "8", rpe: "8", rest: 60 }],
         ["incline-db-curl", { tier: 3, sets: 3, reps: "10-12", rpe: "9", rest: 45 }],
-        ["db-lateral-raise", { tier: 3, sets: 3, reps: "12-15", rpe: "8-9", rest: 45 }],
+        ["cable-oh-tricep-ext", { tier: 3, sets: 3, reps: "12-15", rpe: "9", rest: 45 }],
         ["back-extension", { tier: 1, sets: 3, reps: "12-15", rpe: "7-8", rest: 45 }],
         ["reverse-crunch", { tier: 2, sets: 3, reps: "12-15", rpe: "8-9", rest: 45 }],
-        ["supine-neck-flexion", { tier: 1, sets: 3, reps: "8-20", rpe: "7", rest: 45 }]
+        ["db-lateral-raise", { tier: 1, sets: 3, reps: "12-15", rpe: "8-9", rest: 45 }]
       ]
     },
     "pull-a": {
@@ -664,14 +676,14 @@ const FORGE_DATA = {
         ["ez-skull-crusher", { tier: 3, sets: 3, reps: "10-12", rpe: "9", rest: 45 }],
         ["rear-delt-flyes", { tier: 3, sets: 3, reps: "12-15", rpe: "9", rest: 45 }],
         ["hanging-leg-raise", { tier: 2, sets: 3, reps: "10-12", rpe: "8", rest: 45 }],
-        ["prone-neck-extension", { tier: 1, sets: 3, reps: "8-20", rpe: "7", rest: 45 }],
+        ["dead-bug", { tier: 1, sets: 3, reps: "10-12 ea", rpe: "7-8", rest: 45 }],
         ["dead-hang", { tier: 1, sets: 2, reps: "max time", rpe: "-", rest: 45, isFinisher: true, finisherProgression: "Building toward advanced pull-up variations. Dead hangs develop grip endurance and scapular stability." }]
       ]
     },
     "legs-a": {
       id: "legs-a", name: "Legs A", type: "power", label: "Power",
       goal: "Strength — heavy compounds, low reps, long rest",
-      minutesBySize: { light: 61, normal: 85, extended: 103 },
+      minutesBySize: { light: 63, normal: 87, extended: 105 },
       warmup: {
         name: "Dynamic Warm-Up",
         duration: "5 minutes",
@@ -694,7 +706,7 @@ const FORGE_DATA = {
         ["hanging-leg-raise", { tier: 1, sets: 3, reps: "10-12", rpe: "8", rest: 45 }],
         ["farmer-carry", { tier: 2, sets: 3, reps: "40 yd", rpe: "8", rest: 60 }],
         ["pallof-press", { tier: 2, sets: 3, reps: "12-15 ea", rpe: "8", rest: 45 }],
-        ["side-neck-raise", { tier: 1, sets: 2, reps: "8-15 ea", rpe: "7", rest: 45 }]
+        ["tibialis-raise", { tier: 1, sets: 3, reps: "15-20", rpe: "8", rest: 45 }]
       ]
     },
     "push-b": {
@@ -722,7 +734,7 @@ const FORGE_DATA = {
         ["ez-reverse-curl", { tier: 3, sets: 3, reps: "12-15", rpe: "9", rest: 45 }],
         ["back-extension", { tier: 1, sets: 3, reps: "12-15", rpe: "7-8", rest: 45 }],
         ["crunch-machine", { tier: 2, sets: 3, reps: "15-20", rpe: "8-9", rest: 45 }],
-        ["supine-neck-flexion", { tier: 1, sets: 3, reps: "8-20", rpe: "7", rest: 45 }]
+        ["cable-lateral-raise", { tier: 1, sets: 3, reps: "12-15 ea", rpe: "9", rest: 45 }]
       ]
     },
     "pull-b": {
@@ -750,13 +762,13 @@ const FORGE_DATA = {
         ["tricep-pushdown", { tier: 3, sets: 3, reps: "12-15", rpe: "9", rest: 45 }],
         ["wrist-curl", { tier: 3, sets: 3, reps: "15-20", rpe: "9", rest: 45 }],
         ["back-extension", { tier: 1, sets: 3, reps: "12-15", rpe: "7-8", rest: 45 }],
-        ["prone-neck-extension", { tier: 1, sets: 3, reps: "8-20", rpe: "7", rest: 45 }]
+        ["pallof-press", { tier: 1, sets: 3, reps: "12-15 ea", rpe: "8", rest: 45 }]
       ]
     },
     "legs-b": {
       id: "legs-b", name: "Legs B", type: "hypertrophy", label: "Hypertrophy",
       goal: "Volume — moderate loads, higher reps, controlled tempos",
-      minutesBySize: { light: 65, normal: 89, extended: 108 },
+      minutesBySize: { light: 67, normal: 91, extended: 110 },
       warmup: {
         name: "Dynamic Warm-Up",
         duration: "5 minutes",
@@ -780,7 +792,7 @@ const FORGE_DATA = {
         ["standing-calf-raise", { tier: 3, sets: 3, reps: "10", rpe: "8", rest: 45 }],
         ["suitcase-carry", { tier: 2, sets: 3, reps: "40 yd ea", rpe: "8", rest: 60 }],
         ["back-extension", { tier: 1, sets: 3, reps: "12-15", rpe: "7-8", rest: 45 }],
-        ["side-neck-raise", { tier: 1, sets: 2, reps: "8-15 ea", rpe: "7", rest: 45 }]
+        ["reverse-crunch", { tier: 1, sets: 3, reps: "12-15", rpe: "8-9", rest: 45 }]
       ]
     },
     "cal-push": {
@@ -805,7 +817,7 @@ const FORGE_DATA = {
         ["archer-pushup", { tier: 3, sets: 3, reps: "5-8 ea", rpe: "9", rest: 60 }],
         ["superman", { tier: 1, sets: 3, reps: "30s", rpe: "7", rest: 45 }],
         ["hollow-hold", { tier: 3, sets: 3, reps: "20-40s", rpe: "8", rest: 45 }],
-        ["neck-isometrics", { tier: 1, sets: 2, reps: "4 dir x 10s", rpe: "-", rest: 30 }]
+        ["dead-bug", { tier: 1, sets: 2, reps: "10-12 ea", rpe: "7-8", rest: 30 }]
       ]
     },
     "cal-pull": {
@@ -828,7 +840,7 @@ const FORGE_DATA = {
         ["chinup-bw", { tier: 2, sets: 3, reps: "6-12", rpe: "8-9", rest: 60 }],
         ["superman", { tier: 1, sets: 3, reps: "30s", rpe: "7", rest: 45 }],
         ["hanging-leg-raise", { tier: 2, sets: 3, reps: "10-12", rpe: "8", rest: 45 }],
-        ["neck-isometrics", { tier: 1, sets: 2, reps: "4 dir x 10s", rpe: "-", rest: 30 }],
+        ["bird-dog", { tier: 1, sets: 2, reps: "10-12 ea", rpe: "7", rest: 30 }],
         ["hollow-hold", { tier: 3, sets: 3, reps: "20-40s", rpe: "8", rest: 45 }],
         ["dead-hang", { tier: 3, sets: 2, reps: "max time", rpe: "-", rest: 45, isFinisher: true, finisherProgression: "Grip endurance for every pulling movement you own. Always last, never before the rows." }]
       ]
@@ -877,7 +889,7 @@ const FORGE_DATA = {
         ["pushup", { tier: 1, sets: 4, reps: "12-20", rpe: "8", rest: 45 }],
         ["pullup-bw", { tier: 1, sets: 4, reps: "5-12", rpe: "8-9", rest: 60 }],
         ["bw-squat", { tier: 1, sets: 4, reps: "20-30", rpe: "7-8", rest: 45 }],
-        ["neck-isometrics", { tier: 1, sets: 2, reps: "4 dir x 10s", rpe: "-", rest: 30 }],
+        ["hollow-hold", { tier: 1, sets: 2, reps: "20-40s", rpe: "8", rest: 30 }],
         ["inverted-row", { tier: 2, sets: 3, reps: "10-15", rpe: "8", rest: 45, tip: "Bar at hip height, body straight, pull the chest to the bar. Lower the bar to make it harder, raise it to make it easier. Horizontal pulling, which balances all the pushing." }],
         ["single-leg-rdl", { tier: 2, sets: 3, reps: "10-12 ea", rpe: "8", rest: 45 }],
         ["superman", { tier: 2, sets: 3, reps: "30s", rpe: "7", rest: 45 }],
@@ -888,8 +900,8 @@ const FORGE_DATA = {
     },
     "back-core": {
       id: "back-core", name: "Back & Core", type: "power", label: "Posterior & Core", code: "C",
-      goal: "Everything protecting the lower back and neck, in one session",
-      minutesBySize: { light: 30, normal: 55, extended: 78 },
+      goal: "Lower back, upper back and core, in one session",
+      minutesBySize: { light: 32, normal: 57, extended: 80 },
       warmup: {
         name: "Dynamic Warm-Up",
         duration: "5 minutes",
@@ -904,14 +916,14 @@ const FORGE_DATA = {
         ["back-extension", { tier: 1, sets: 3, reps: "12-15", rpe: "7-8", rest: 45 }],
         ["chest-supported-row", { tier: 1, sets: 3, reps: "10-12", rpe: "8", rest: 60 }],
         ["dead-bug", { tier: 1, sets: 3, reps: "10-12 ea", rpe: "7-8", rest: 45 }],
-        ["neck-isometrics", { tier: 1, sets: 2, reps: "4 dir x 10s", rpe: "-", rest: 30 }],
+        ["rear-delt-flyes", { tier: 1, sets: 3, reps: "12-15", rpe: "9", rest: 45 }],
         ["face-pulls", { tier: 2, sets: 3, reps: "15", rpe: "8", rest: 45 }],
         ["pallof-press", { tier: 2, sets: 3, reps: "12-15 ea", rpe: "8", rest: 45 }],
         ["hanging-leg-raise", { tier: 2, sets: 3, reps: "10-12", rpe: "8", rest: 45 }],
         ["bird-dog", { tier: 3, sets: 3, reps: "10-12 ea", rpe: "7", rest: 45 }],
         ["decline-plate-crunch", { tier: 3, sets: 3, reps: "12-15", rpe: "8-9", rest: 45 }],
         ["suitcase-carry", { tier: 3, sets: 3, reps: "40 yd ea", rpe: "8", rest: 60 }],
-        ["prone-neck-extension", { tier: 3, sets: 3, reps: "8-20", rpe: "7", rest: 45 }]
+        ["hip-thrust", { tier: 3, sets: 3, reps: "8-12", rpe: "8-9", rest: 45 }]
       ]
     },
     "kb-full": {
@@ -942,6 +954,15 @@ const FORGE_DATA = {
       ]
     },
   },
+
+  // Moves that are on no day's list but stay in Add exercise (and keep their
+  // history and records readable). Numbers are what an added copy starts with.
+  library: [
+    ["supine-neck-flexion", { tier: 1, sets: 3, reps: "8-20", rpe: "7", rest: 45 }],
+    ["prone-neck-extension", { tier: 1, sets: 3, reps: "8-20", rpe: "7", rest: 45 }],
+    ["side-neck-raise", { tier: 1, sets: 2, reps: "8-15 ea", rpe: "7", rest: 45 }],
+    ["neck-isometrics", { tier: 1, sets: 2, reps: "4 dir x 10s", rpe: "-", rest: 30 }]
+  ],
 
   cardio: [
     {
@@ -994,12 +1015,12 @@ const FORGE_DATA = {
 // Each day's list becomes full exercise objects: the move's shared fields,
 // then the day's own. One object per day, so a toggle saved for one move
 // (BW / BW+ / BW-) is applied to every day by id in app.js.
-Object.values(FORGE_DATA.workouts).forEach(w => {
-  w.exercises = w.exercises.map(([id, day]) => {
-    const move = MOVES[id];
-    if (!move) throw new Error('FORGE data: no move called ' + id);
-    return Object.assign({ id: id }, move, day, { restLabel: day.rest + ' sec' });
-  });
+const expandMoves = list => list.map(([id, day]) => {
+  const move = MOVES[id];
+  if (!move) throw new Error('FORGE data: no move called ' + id);
+  return Object.assign({ id: id }, move, day, { restLabel: day.rest + ' sec' });
 });
+Object.values(FORGE_DATA.workouts).forEach(w => { w.exercises = expandMoves(w.exercises); });
+FORGE_DATA.library = expandMoves(FORGE_DATA.library || []);
 
 if (typeof window !== 'undefined') window.FORGE_DATA = FORGE_DATA;
