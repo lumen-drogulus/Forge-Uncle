@@ -156,6 +156,7 @@ const MOVES = {
   "kb-swings": {
     name: "Kettlebell Swings",
     weightMode: "free",
+    kb: true,
     video: "https://www.youtube.com/results?search_query=kettlebell+swing+hip+hinge+tutorial",
     tip: "Hip hinge, not a squat. The bell is thrown forward by the hips snapping, arms are just rope. Bell floats to chest height, no higher. Done right you will feel this in the glutes and hamstrings, which is exactly what you want awake before heavy squats.",
   },
@@ -508,6 +509,65 @@ const MOVES = {
     video: "https://www.youtube.com/results?search_query=decline+weighted+crunch+proper+form",
     tip: "Feet hooked on a decline bench, plate hugged flat to the chest, never behind the head. Curl the ribs toward the pelvis, pause, lower for three counts and stop short of lying flat so the abs stay loaded. Log the plate's weight; log 0 until bodyweight is easy for 3 sets of 15. Eyes on the ceiling so the neck stays out of it.",
   },
+
+  // ----- first used on Kettlebell Full Body (v0.37) -----
+  // kb: true = a kettlebell move, so the Plates button stays off.
+  "kb-goblet-squat": {
+    name: "Goblet Squat",
+    weightMode: "free",
+    kb: true,
+    video: "https://www.youtube.com/results?search_query=kettlebell+goblet+squat+form",
+    tip: "Hold the bell by the horns against the chest, elbows pointing down. Sit down between the heels with the chest up until the hips drop below the knees, elbows brushing the inside of the knees. Drive up through the whole foot. Pause a beat at the bottom to own the depth.",
+  },
+  "kb-press": {
+    name: "Single-Arm KB Press",
+    weightMode: "free",
+    kb: true,
+    video: "https://www.youtube.com/results?search_query=single+arm+kettlebell+press+form",
+    tip: "Start in the rack: bell on the back of the forearm, wrist straight, elbow tucked to the ribs. Squeeze the glutes and the free fist, then press until the biceps is by the ear. Lower back to the rack under control. No leaning away from the bell. All reps on one arm, then the other.",
+  },
+  "kb-row": {
+    name: "Single-Arm KB Row",
+    weightMode: "free",
+    kb: true,
+    video: "https://www.youtube.com/results?search_query=single+arm+kettlebell+row+bench+form",
+    tip: "One hand and the same-side knee on a bench, back flat. Pull the bell to the hip, elbow close to the body, and squeeze the shoulder blade back. Lower until the arm is straight and the shoulder stretches forward. No twisting the torso to cheat the bell up.",
+  },
+  "kb-floor-press": {
+    name: "Single-Arm KB Floor Press",
+    weightMode: "free",
+    kb: true,
+    video: "https://www.youtube.com/results?search_query=single+arm+kettlebell+floor+press",
+    tip: "Lie on the floor, knees bent, bell in one hand with the wrist straight. Upper arm at about 45 degrees from the body. Lower until the back of the elbow touches the floor, pause, press straight up over the shoulder. The floor stops the elbow, so the shoulder never stretches past the torso. Head stays down.",
+  },
+  "kb-clean": {
+    name: "Kettlebell Clean",
+    weightMode: "free",
+    kb: true,
+    video: "https://www.youtube.com/results?search_query=kettlebell+clean+technique",
+    tip: "Hike the bell back between the legs like a swing, then snap the hips and keep the bell close, elbow brushing the ribs, as if zipping up a jacket. Let the hand slip around the handle so the bell lands softly on the back of the forearm in the rack. If it bangs the wrist, it travelled too far from the body.",
+  },
+  "kb-reverse-lunge": {
+    name: "Front-Rack Reverse Lunge",
+    weightMode: "free",
+    kb: true,
+    video: "https://www.youtube.com/results?search_query=kettlebell+front+rack+reverse+lunge",
+    tip: "Bell in the rack on one side. Step back long and lower until the back knee nearly touches the floor, front shin about vertical. Drive through the front heel to stand, bringing the back foot home. Torso stays tall against the pull of the bell. All reps on one leg, then switch the bell and the leg.",
+  },
+  "kb-getup": {
+    name: "Turkish Get-Up",
+    weightMode: "free",
+    kb: true,
+    video: "https://www.youtube.com/results?search_query=turkish+get+up+step+by+step",
+    tip: "Slow is the point. Lying down, bell pressed up, same-side knee bent. Roll to the elbow, post to the hand, lift the hips, sweep the straight leg under to a kneel, lift the torso, line up the back shin and stand. Reverse every step to get down. The bell arm stays vertical the whole way; watch the bell if the neck allows, otherwise look ahead. Start light: a missed get-up is a dropped bell.",
+  },
+  "kb-windmill": {
+    name: "Kettlebell Windmill",
+    weightMode: "free",
+    kb: true,
+    video: "https://www.youtube.com/results?search_query=kettlebell+windmill+form",
+    tip: "Bell locked out overhead, feet a bit wider than the hips, both turned away from the bell. Push the hips out toward the bell side and hinge, sliding the free hand down the inside of the front leg. The bell arm stays vertical, the back stays long. Go only as low as the hamstrings allow, then drive the hips back under to stand. Light bell, slow reps.",
+  },
 };
 
 const FORGE_DATA = {
@@ -528,13 +588,14 @@ const FORGE_DATA = {
     { id: "legs-b", name: "Legs B", type: "hypertrophy", label: "Hypertrophy", color: "cyan", code: "L2" }
   ],
 
-  // Alternate days: calisthenics (no gym) and Back & Core (a bonus by default).
+  // Alternate days: calisthenics (no gym); Back & Core and Kettlebell (bonuses by default).
   alternates: {
     "cal-push": { id: "cal-push", name: "Calisthenics Push", type: "calisthenics", label: "Bodyweight", color: "green", code: "CP", advancesByDefault: true },
     "cal-pull": { id: "cal-pull", name: "Calisthenics Pull", type: "calisthenics", label: "Bodyweight", color: "green", code: "CB", advancesByDefault: true },
     "cal-legs": { id: "cal-legs", name: "Calisthenics Legs", type: "calisthenics", label: "Bodyweight", color: "green", code: "CL", advancesByDefault: true },
     "cal-full": { id: "cal-full", name: "Calisthenics Full Body", type: "calisthenics", label: "Bodyweight", color: "green", code: "CF", advancesByDefault: true },
-    "back-core": { id: "back-core", name: "Back & Core", type: "power", label: "Posterior & Core", color: "violet", code: "C", advancesByDefault: false }
+    "back-core": { id: "back-core", name: "Back & Core", type: "power", label: "Posterior & Core", color: "violet", code: "C", advancesByDefault: false },
+    "kb-full": { id: "kb-full", name: "Kettlebell Full Body", type: "kettlebell", label: "Kettlebell", color: "rose", code: "KB", advancesByDefault: false }
   },
 
   // Cable attachment for each cable move, by exercise id (v0.30). Shown on the Tips sheet
@@ -851,6 +912,33 @@ const FORGE_DATA = {
         ["decline-plate-crunch", { tier: 3, sets: 3, reps: "12-15", rpe: "8-9", rest: 45 }],
         ["suitcase-carry", { tier: 3, sets: 3, reps: "40 yd ea", rpe: "8", rest: 60 }],
         ["prone-neck-extension", { tier: 3, sets: 3, reps: "8-20", rpe: "7", rest: 45 }]
+      ]
+    },
+    "kb-full": {
+      id: "kb-full", name: "Kettlebell Full Body", type: "kettlebell", label: "Kettlebell", code: "KB",
+      goal: "Every pattern with a bell: hinge, squat, press, row, carry",
+      minutesBySize: { light: 35, normal: 60, extended: 80 },
+      warmup: {
+        name: "Dynamic Warm-Up",
+        duration: "5 minutes",
+        movements: [
+          { name: "Arm Circles", fig: "arm-circles", text: "Arm circles, 10 forward and 10 back" },
+          { name: "Hip Circles", fig: "hip-circles", text: "Hip circles, 8 each direction per leg" },
+          { name: "Bodyweight Squats", fig: "bw-squat", text: "Bodyweight squats, 10 slow reps to full depth" },
+          { name: "Light Swings", fig: "kb-swings", text: "Light kettlebell swings, 10 easy reps to wake up the hips" }
+        ]
+      },
+      exercises: [
+        ["kb-swings", { tier: 1, sets: 4, reps: "15", rpe: "7-8", rest: 60 }],
+        ["kb-goblet-squat", { tier: 1, sets: 4, reps: "8-12", rpe: "8", rest: 60 }],
+        ["kb-press", { tier: 1, sets: 3, reps: "6-8 ea", rpe: "8", rest: 60 }],
+        ["kb-row", { tier: 1, sets: 3, reps: "8-10 ea", rpe: "8", rest: 45 }],
+        ["kb-floor-press", { tier: 1, sets: 3, reps: "8-10 ea", rpe: "8", rest: 45 }],
+        ["kb-clean", { tier: 2, sets: 3, reps: "5 ea", rpe: "7-8", rest: 60 }],
+        ["kb-reverse-lunge", { tier: 2, sets: 3, reps: "8 ea", rpe: "8", rest: 60 }],
+        ["suitcase-carry", { tier: 2, sets: 3, reps: "40 yd ea", rpe: "8", rest: 60, tip: "One kettlebell, one side, walk without leaning. The obliques on the empty side are doing the work, fighting to keep you upright. Switch hands each set." }],
+        ["kb-getup", { tier: 3, sets: 3, reps: "1 ea", rpe: "7", rest: 60 }],
+        ["kb-windmill", { tier: 3, sets: 2, reps: "5 ea", rpe: "7", rest: 45 }]
       ]
     },
   },

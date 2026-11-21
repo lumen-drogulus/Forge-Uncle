@@ -5410,5 +5410,544 @@ function ezBarAcross(cam, at, depthBias = 0) {
   });
 })();
 
+/* =========================================================
+   v0.37 · Kettlebell Full Body: eight moves
+   kb-goblet-squat, kb-press, kb-row, kb-floor-press, kb-clean,
+   kb-reverse-lunge, kb-getup, kb-windmill
+   One bell, always on the near (left) side when only one hand holds it.
+   ========================================================= */
+
+// kettlebell: the handle in the fist at grip (world), the bell's centre KB_R cm away
+// along dir (world, unit). Bell body plus a handle arch that passes through the fist.
+const KB_R = 11;
+function kbAt(P, grip, dir, cls = "iron") {
+  const g = P(grip), c = P(a3(grip, m3(dir, KB_R)));
+  let u = [c[0] - g[0], c[1] - g[1]], L = Math.hypot(u[0], u[1]);
+  // bell end-on (pointing at the camera): the handle still reads as an arch over it
+  u = L < 3 ? [0, 1] : [u[0] / L, u[1] / L];
+  const v = [-u[1], u[0]];
+  const h1 = [c[0] - u[0] * 5.5 + v[0] * 5.4, c[1] - u[1] * 5.5 + v[1] * 5.4];
+  const h2 = [c[0] - u[0] * 5.5 - v[0] * 5.4, c[1] - u[1] * 5.5 - v[1] * 5.4];
+  const top = L < 3 ? [c[0] - u[0] * 11, c[1] - u[1] * 11] : g;
+  const ctl = [2 * top[0] - (h1[0] + h2[0]) / 2, 2 * top[1] - (h1[1] + h2[1]) / 2];
+  const base = [c[0] + u[0] * 7.6, c[1] + u[1] * 7.6];
+  return [
+    pth(`M${P2(h1)}Q${P2(ctl)} ${P2(h2)}`, cls, "fill:none;stroke-width:2.6"),
+    pth(circle(c, 8), cls),
+    pth(`M${P2([base[0] + v[0] * 4, base[1] + v[1] * 4])}L${P2([base[0] - v[0] * 4, base[1] - v[1] * 4])}`, "line-dim"),
+  ];
+}
+const kbItem = (P, grip, dir, depth = 999, cls = "iron") => ({ depth, tag: "kb", els: kbAt(P, grip, dir, cls) });
+// the rack: fist in front of the collarbone, elbow tucked under it, bell on the back of the forearm
+const rackGrip = (J, S) => a3(a3(J["sh" + S], m3(J.s, -5)), a3(m3(J.ant, 13), m3(out3(J, S), -6)));
+const RACK_DIR = J => n3(a3(a3(m3(J.s, -0.55), m3(J.ant, -0.25)), m3(J.lat, -0.8)));   // out of the left forearm, toward the camera
+
+/* ---- Goblet squat: bell by the horns at the chest, elbows down, sit between the heels below parallel ---- */
+(() => {
+  const geo = h => ({ px: lerp(-1, -18, h), py: lerp(91.2, 37.5, h), th: lerp(3, 26, h) });
+  const legs = {
+    R: { ankle: [0, 8.4, -17], pole: [1, 0.2, -0.35], foot: n3([1, 0, -0.26]) },
+    L: { ankle: [0, 8.4, 17], pole: [1, 0.2, 0.35], foot: n3([1, 0, 0.26]) },
+  };
+  const hold = J => a3(J.T(0.84, 0, 0), m3(J.ant, 19));
+  let KNEE_Y = 0;
+  const FIG = sideMove({
+    id: "kb-goblet-squat", frame: { k: 1.2, cx: 146, cy: 166 }, shadowR: 40, shadowX: -4,
+    keys: { top: { h: 0 }, bot: { h: 1 } }, ghostKey: "bot",
+    seq: [
+      { label: "Sit down", dur: 2, from: "top", to: "bot", ease: "inOut", effort: 0.8 },
+      { label: "Pause", dur: 0.5, from: "bot", to: "bot", effort: 0.9 },
+      { label: "Stand", dur: 1, from: "bot", to: "top", ease: "inOut", effort: 1 },
+      { label: "Top", dur: 0.4, from: "top", to: "top", effort: 0.3 },
+    ],
+    muscles: { quads: 1, glutes: 1, core: 0.35 },
+    spec: p => {
+      const g = geo(p.h);
+      return { pelvis: [g.px, g.py, 0], spine: tilt2(g.th), lat: FACE_RIGHT, head: g.th * 0.4, legs,
+        arms: J => { const G = hold(J), o = {};
+          for (const S of ["R", "L"]) { const ou = out3(J, S); o[S] = { at: a3(G, m3(ou, 5)), pole: n3(a3([0.15, -1, 0], m3(ou, 0.5))) }; }
+          return o; } };
+    },
+    draw(J, p, ctx, P) {
+      const y = P([0, KNEE_Y, 0])[1], deep = p.h > 0.97;
+      const ch = P(J.T(0.86, 0, 14));
+      return {
+        back: [cueLine([28, y], [250, y], deep)],
+        items: [kbItem(P, hold(J), m3(J.s, -1))],
+        labels: [
+          { at: [28, y - 5], text: "BELOW PARALLEL", on: deep, anchor: "start" },
+          { at: [ch[0] + 34, ch[1] - 18], text: "CHEST UP", on: true, anchor: "start" },
+          { at: [P(J.pelvis)[0] - 16, P(J.pelvis)[1] - 34], text: ctx.phase === "Stand" ? "WHOLE FOOT" : "", on: true, anchor: "end" },
+        ],
+      };
+    },
+  });
+  const Jb = FIG.build({ h: 1 }, { mus: { __id: "c" }, phase: "", pt: 0, seg: null, uid: "c" }).J;
+  KNEE_Y = Jb.kneeL[1];
+})();
+
+/* ---- Single-arm press: from the rack (elbow tucked, wrist straight) to lockout with the biceps by the ear ---- */
+(() => {
+  const PEL = [0, 91.2, 0], S0 = tilt2(1);
+  const TOP_DIR = n3([-0.55, -0.5, 0.45]);
+  const gripAt = (J, d) => {
+    const r = rackGrip(J, "L"), t = a3(J.shL, [-1, 62.4, 2.5]);
+    return a3(mix3(r, t, d), [3 * bump(d), 0, 4 * bump(d)]);
+  };
+  sideMove({
+    id: "kb-press", frame: { k: 1.04, cx: 150, cy: 150 },
+    keys: { rack: { d: 0 }, top: { d: 1 } }, ghostKey: "top",
+    seq: [
+      { label: "Press", dur: 1.1, from: "rack", to: "top", ease: "inOut", effort: 1 },
+      { label: "Lockout", dur: 0.5, from: "top", to: "top", effort: 0.5 },
+      { label: "Lower", dur: 1.5, from: "top", to: "rack", ease: "inOut", effort: 0.7 },
+      { label: "Rack", dur: 0.5, from: "rack", to: "rack", effort: 0.3 },
+    ],
+    muscles: { frontdelt: 1, delts: 0.6, triceps: 0.5, core: 0.3 },
+    spec: p => ({
+      pelvis: PEL, spine: S0, lat: FACE_RIGHT, head: 0, legs: standLegs(0),
+      arms: J => {
+        const ou = out3(J, "L"), dd = n3([0.04, -1, 0.12]);
+        return {
+          L: { at: gripAt(J, p.d), pole: n3(a3(mix3([0.35, -1, 0], [0, -0.15, 0], p.d), m3(ou, lerp(0.35, 1, p.d)))) },
+          R: via(J, "R", a3(J.shR, m3(n3([0.04, -1, -0.12]), B.ua)), a3(J.shR, m3(n3([0.04, -1, -0.12]), B.ua + B.grip - 1))),
+        };
+        void dd;
+      },
+    }),
+    draw(J, p, ctx, P) {
+      const g = gripAt(J, p.d), dir = n3(mix3(RACK_DIR(J), TOP_DIR, sstep(p.d)));
+      const sh = P(J.shL), top = p.d > 0.97, rack = p.d < 0.03;
+      const t0 = P(a3(J.shL, [0, -2, 0])), t1 = P(a3(J.shL, [0, 74, 0]));
+      const el = P(J.elbowL);
+      return {
+        back: [pth(`M${P2(t0)}L${P2(t1)}`, "cue" + (top ? " on" : ""))],
+        items: [kbItem(P, g, dir)],
+        labels: [
+          { at: [t1[0] - 8, t1[1] + 4], text: "BICEP BY EAR", on: top, anchor: "end" },
+          { at: [el[0] + 30, sh[1] + 34], text: "ELBOW TUCKED", on: rack, anchor: "start" },
+          { at: [el[0] + 30, sh[1] + 44], text: "WRIST STRAIGHT", on: rack, anchor: "start" },
+        ],
+        count: "LEFT ARM",
+      };
+    },
+  });
+})();
+
+/* ---- Single-arm KB row (side): far knee and hand on the bench, flat back; the bell travels
+   from a straight-arm hang to the hip, elbow close to the body. Same setup as the warm-up row ---- */
+(() => {
+  const PEL = [0, 91.4, 0], S0 = tilt2(78);
+  const base = solve3({ pelvis: PEL, spine: S0, lat: FACE_RIGHT, head: 12, legs: standLegs(0), arms: { R: { at: [0, 0, 0], pole: [0, -1, 0] }, L: { at: [0, 0, 0], pole: [0, -1, 0] } } });
+  const shL = base.shL, WX = base.shR[0] + 2;
+  const HANG = [shL[0] + 2, shL[1] - (B.ua + B.grip) + 1.4, shL[2] + 2];
+  const TOP = a3(base.T(0.24, 0, 0), [-2, -5, 0]); TOP[2] = 13.5;
+  const MIDP = [shL[0] - 12, (HANG[1] + TOP[1]) / 2 - 2, 14.5];
+  const gripAt = e => { const u = 1 - e; return a3(a3(m3(HANG, u * u), m3(MIDP, 2 * u * e)), m3(TOP, e * e)); };
+  const legs = {
+    R: { knee: [-3, 49.3, -8.6], ankle: [-45, 49.6, -8.6], pole: [0, -1, 0], foot: [-1, 0.02, 0], sole: [0, 1, 0] },
+    L: { ankle: [10, 8.4, 15], pole: [1, 0.2, 0.2], foot: [1, 0, 0.12] },
+  };
+  sideMove({
+    id: "kb-row", frame: { k: 1.3, cx: 156, cy: 172 }, shadowR: 50, shadowX: 4,
+    keys: { hang: { d: 0 }, top: { d: 1 } }, ghostKey: "top",
+    seq: [
+      { label: "Row", dur: 1, from: "hang", to: "top", ease: "inOut", effort: 1 },
+      { label: "Squeeze", dur: 0.5, from: "top", to: "top", effort: 1 },
+      { label: "Lower", dur: 1.6, from: "top", to: "hang", ease: "inOut", effort: 0.6 },
+      { label: "Stretch", dur: 0.3, from: "hang", to: "hang", effort: 0.3 },
+    ],
+    muscles: { lats: 1, midback: 0.7, biceps: 0.4, reardelt: 0.3 },
+    spec: p => ({ pelvis: PEL, spine: S0, lat: FACE_RIGHT, head: 12, legs,
+      arms: { R: { at: [WX, BENCH.top + 3.6, -17.5], pole: [-0.3, -0.5, -0.5], wrist: true, hand: [1, 0, 0] },
+        L: { at: gripAt(p.d), pole: [-0.35, 1, 0.25] } } }),
+    draw(J, p, ctx, P) {
+      const back = m3(J.ant, -1);
+      const a = P(a3(a3(J.pelvis, m3(J.s, -4)), m3(back, 15))), b = P(a3(a3(J.shoulder, m3(J.s, 10)), m3(back, 15)));
+      const hip = P(J.T(0.12, 0, 0)), top = p.d > 0.95;
+      return {
+        back: [...flatBenchEls(P, -62, 66), cueLine(a, b, true)],
+        items: [kbItem(P, gripAt(p.d), n3([-0.12, -1, 0.1]))],
+        labels: [
+          { at: [b[0] + 2, b[1] - 8], text: "FLAT BACK", on: true, anchor: "middle" },
+          { at: [hip[0] - 44, hip[1] - 26], text: "BELL TO HIP", on: top, anchor: "end" },
+          { at: [hip[0] - 44, hip[1] - 16], text: "NO TWIST", on: false, anchor: "end" },
+        ],
+        count: "LEFT ARM",
+      };
+    },
+  });
+})();
+
+/* ---- Single-arm floor press: lying on the floor, knees bent; the upper arm sits about 45° from
+   the body and the elbow comes down until it touches the floor, then presses straight up over the shoulder ---- */
+(() => {
+  const PEL = [8, 11, 0], S = [-1, 0, 0];
+  const legs = {};
+  for (const [Sd, sg] of [["R", 1], ["L", -1]]) legs[Sd] = { ankle: [PEL[0] + 44, 8.4, -sg * 11], pole: [0.3, 1, 0], foot: [1, 0, 0] };
+  const base = solve3({ pelvis: PEL, spine: S, lat: SUPINE_LAT, head: 0, legs, arms: { R: { at: [0, 0, 0], pole: [0, -1, 0] }, L: { at: [0, 0, 0], pole: [0, -1, 0] } } });
+  const sh = base.shL;
+  // elbow on the floor (its surface 3.6 cm under the joint), upper arm 45° from the ribs toward the feet
+  const drop = sh[1] - 3.8, hz = Math.sqrt(B.ua * B.ua - drop * drop);
+  const ELB = a3(sh, [hz * 0.62, -drop, hz * 0.78]);
+  const LOW = a3(ELB, [-1.5, B.grip - 0.8, -1.5]);              // forearm vertical over the elbow
+  const TOP = a3(sh, [0.5, B.ua + B.grip - 1.4, 1]);            // stacked over the shoulder
+  const gripAt = d => a3(mix3(LOW, TOP, d), [0, 0, 3 * bump(d)]);
+  const DIR = n3([-0.5, -0.45, 0.55]);
+  sideMove({
+    id: "kb-floor-press", frame: { k: 1.4, cx: 150, cy: 200 }, shadowR: 78, shadowX: -6, shadowFlat: 0.1,
+    keys: { low: { d: 0 }, top: { d: 1 } }, ghostKey: "low",
+    seq: [
+      { label: "Press", dur: 1, from: "low", to: "top", ease: "inOut", effort: 1 },
+      { label: "Lockout", dur: 0.4, from: "top", to: "top", effort: 0.5 },
+      { label: "Lower", dur: 1.8, from: "top", to: "low", ease: "inOut", effort: 0.7 },
+      { label: "Pause", dur: 0.5, from: "low", to: "low", effort: 0.4 },
+    ],
+    muscles: { chest: 1, triceps: 0.7, frontdelt: 0.5 },
+    spec: p => ({ pelvis: PEL, spine: S, lat: SUPINE_LAT, head: 0, legs,
+      arms: J => {
+        // free arm flat on the floor beside the body, palm down
+        const ou = out3(J, "R"), shR = J.shR, dr = shR[1] - 3.6, Lw = B.ua + B.fa - 0.6;
+        const u = n3(a3([Math.sqrt(Math.max(1, Lw * Lw - dr * dr - 30)) * 0.85, -dr, 0], m3(ou, 18)));
+        return {
+          L: { at: gripAt(p.d), pole: n3([0.55, -0.35, 0.75]) },
+          R: { at: a3(shR, m3(u, Lw)), elbow: a3(shR, m3(u, B.ua)), pole: [0, 1, 0], wrist: true, hand: n3([u[0], 0, u[2]]) },
+        };
+      } }),
+    draw(J, p, ctx, P) {
+      const low = p.d < 0.03, top = p.d > 0.97, yF = P([0, 0, 0])[1];
+      const e = P(J.elbowL), s = P(J.shL), g = P(gripAt(p.d));
+      return {
+        back: [cueLine([s[0], s[1] + 4], [s[0], P(TOP)[1] - 14], top)],
+        items: [kbItem(P, gripAt(p.d), DIR)],
+        dots: [{ at: [e[0], yF - 1.5], on: low }],
+        labels: [
+          { at: [e[0] + 10, yF + 13], text: "ELBOW TOUCHES", on: low, anchor: "start" },
+          { at: [s[0] + 6, P(TOP)[1] - 12], text: "OVER THE SHOULDER", on: top, anchor: "start" },
+          { at: [P(J.head)[0] - 4, yF + 13], text: "HEAD DOWN", on: true, anchor: "middle" },
+        ],
+        count: "LEFT ARM",
+      };
+      void g;
+    },
+  });
+})();
+
+/* ---- Kettlebell clean: hike back between the legs like a swing, hips snap, the bell rides up close
+   to the body (zip the jacket) and lands softly in the rack on the back of the forearm ---- */
+(() => {
+  const KNEE = 152;
+  const hips = u => 1 - sstep(u / 0.55);                                  // 1 = hinged, 0 = tall
+  const geo = u => { const h = hips(u), px = lerp(1, -30, h); return { h, px, py: hipY(px, KNEE), th: lerp(1, 60, h) }; };
+  const body = u => { const g = geo(u); return { pelvis: [g.px, g.py, 0], spine: tilt2(g.th), lat: FACE_RIGHT, head: g.th * 0.3, legs: standLegs(0, 0, 13) }; };
+  // the arm is driven from the shoulder: upper-arm angle from plumb (a, + = forward), elbow bend (f) and how far
+  // the elbow sits out from the side (o, - = in between the legs). Exact lengths, so it never flips near straight
+  const AF = [[0, -46, 3], [0.3, -26, 10], [0.48, -22, 70], [0.72, -10, 140], [1, 4, 158]];
+  const OUT = [[0, -0.28, 0], [0.45, 0.32, 0], [1, 0.14, 0]];
+  const armAt = (J, u) => {
+    const [a, f] = trackXY(AF, u), o = trackXY(OUT, u)[0], ou = out3(J, "L");
+    const dU = n3(a3([Math.sin(a * D2R), -Math.cos(a * D2R), 0], m3(ou, o)));
+    const fw = [1, 0.15, 0], bend = n3(s3(fw, m3(dU, d3(fw, dU))));
+    const dF = n3(a3(m3(dU, Math.cos(f * D2R)), m3(bend, Math.sin(f * D2R))));
+    const E = a3(J.shL, m3(dU, B.ua));
+    return { E, G: a3(E, m3(dF, B.grip - 0.6)), dF };
+  };
+  const dirAt = (J, u) => {
+    const arm = armAt(J, u).dF, down = n3([0.05, -1, 0.25]);
+    return u < 0.55 ? n3(mix3(arm, down, sstep(u / 0.55))) : n3(mix3(down, RACK_DIR(J), sstep((u - 0.55) / 0.45)));
+  };
+  sideMove({
+    id: "kb-clean", frame: { k: 1.16, cx: 150, cy: 160 }, shadowR: 40, shadowX: -6,
+    keys: { rack: { u: 1 }, hike: { u: 0 } }, ghostKey: "hike",
+    seq: [
+      { label: "Drop", dur: 0.8, from: "rack", to: "hike", ease: "inOut", effort: 0.5 },
+      { label: "Snap", dur: 0.8, from: "hike", to: "rack", ease: "inOut", effort: 1 },
+      { label: "Rack", dur: 0.7, from: "rack", to: "rack", effort: 0.3 },
+    ],
+    muscles: { glutes: 1, hams: 0.8, traps: 0.3, forearms: 0.3 },
+    spec: p => Object.assign(body(p.u), {
+      arms: J => {
+        const dd = n3([0.06, -1, -0.12]), arm = armAt(J, p.u);
+        return {
+          L: via(J, "L", arm.E, arm.G),
+          R: via(J, "R", a3(J.shR, m3(dd, B.ua)), a3(J.shR, m3(dd, B.ua + B.grip - 1))),
+        };
+      } }),
+    draw(J, p, ctx, P) {
+      const g = J.gripL, rack = p.u > 0.97, snap = ctx.phase === "Snap";
+      const pel = P(J.pelvis), el = P(J.elbowL);
+      return {
+        items: [kbItem(P, g, dirAt(J, p.u))],
+        labels: [
+          { at: [pel[0] - 18, pel[1] + 4], text: "HIPS SNAP", on: snap && p.u < 0.6, anchor: "end" },
+          { at: [244, 110], text: "BELL CLOSE", on: snap, anchor: "end" },
+          { at: [el[0] + 30, el[1] + 2], text: rack ? "SOFT RACK" : "", on: true, anchor: "start" },
+        ],
+        count: "LEFT ARM",
+      };
+    },
+  });
+})();
+
+/* ---- Front-rack reverse lunge: bell in the left rack, left foot planted; the right foot steps back
+   long and lands on the toes, the back knee drops toward the floor, front shin stays near vertical ---- */
+(() => {
+  const FRONT = [10, 8.4, 11];
+  const T_HOME = [24, 2.8], T_BACK = [-66, 2.8];
+  const PEL_TOP = [9, 91.2], PEL_LAND = [-16, 72], PEL_BOT = [-30, 50.5];
+  const at = u => {
+    const s1 = clamp(u, 0, 1), s2 = clamp(u - 1, 0, 1), e1 = sstep(s1), e2 = sstep(s2);
+    let toe, th, pel;
+    if (u <= 1) {
+      toe = [lerp(T_HOME[0], T_BACK[0], e1), T_HOME[1] + 9 * bump(s1)];
+      th = lerp(0, 38, e1);
+      pel = [lerp(PEL_TOP[0], PEL_LAND[0], e1), lerp(PEL_TOP[1], PEL_LAND[1], e1)];
+    } else {
+      toe = T_BACK; th = lerp(38, 64, e2);
+      pel = [lerp(PEL_LAND[0], PEL_BOT[0], e2), lerp(PEL_LAND[1], PEL_BOT[1], e2)];
+    }
+    return { toe, th, pel, s1, s2 };
+  };
+  const spec = p => {
+    const a = at(p.u), pel = [a.pel[0], a.pel[1], 0];
+    const ank = ankleOnToe([a.toe[0], a.toe[1], -11], a.th);
+    const swing = p.u < 1;
+    const back = legAt(swing ? reachFrom(a3(pel, [0, 0, -8.6]), ank, LEGLEN - 0.8) : ank, a.th, [0.4, -1, 0]);
+    return { pelvis: pel, spine: tilt2(lerp(2, 9, sstep(p.u / 2))), lat: FACE_RIGHT, head: 2,
+      legs: { L: { ankle: FRONT, pole: [1, 0.2, 0], foot: [1, 0, 0] }, R: back },
+      arms: J => {
+        const dd = n3([0.25, -1, -0.3]);
+        return {
+          L: { at: rackGrip(J, "L"), pole: n3(a3([0.35, -1, 0], m3(out3(J, "L"), 0.35))) },
+          R: via(J, "R", a3(J.shR, m3(dd, B.ua)), a3(J.shR, m3(dd, B.ua + B.grip - 1))),
+        };
+      } };
+  };
+  sideMove({
+    id: "kb-reverse-lunge", frame: { k: 1.14, cx: 140, cy: 175 }, shadowR: 54, shadowX: -12,
+    keys: { top: { u: 0 }, land: { u: 1 }, bot: { u: 2 } }, ghostKey: "bot",
+    seq: [
+      { label: "Step back", dur: 0.9, from: "top", to: "land", ease: "inOut", effort: 0.5 },
+      { label: "Lower", dur: 1.1, from: "land", to: "bot", ease: "inOut", effort: 0.8 },
+      { label: "Drive", dur: 0.9, from: "bot", to: "land", ease: "inOut", effort: 1 },
+      { label: "Step in", dur: 0.7, from: "land", to: "top", ease: "inOut", effort: 0.6 },
+      { label: "Tall", dur: 0.4, from: "top", to: "top", effort: 0.2 },
+    ],
+    muscles: { quads: 1, glutes: 1, core: 0.3 },
+    spec,
+    draw(J, p, ctx, P) {
+      const yF = P([0, 0, 0])[1], bottom = p.u > 1.95, drive = ctx.phase === "Drive";
+      const fa = P(FRONT), bk = P(J.kneeR), heel = P([FRONT[0] - 2.5, 0, 0]);
+      return {
+        back: p.u > 1.3 ? [cueLine([fa[0], yF], [fa[0], yF - 66], bottom), cueLine([bk[0] - 22, yF - 1.5], [bk[0] + 14, yF - 1.5], bottom)] : [],
+        items: [kbItem(P, rackGrip(J, "L"), RACK_DIR(J))],
+        labels: [
+          { at: [fa[0] + 5, yF - 62], text: p.u > 1.3 ? "SHIN VERTICAL" : "", on: bottom, anchor: "start" },
+          { at: [bk[0] - 4, yF + 12], text: p.u > 1.3 ? "KNEE TO FLOOR" : "", on: bottom, anchor: "middle" },
+          { at: [P(J.head)[0] - 22, P(J.head)[1] - 14], text: "TALL", on: true, anchor: "end" },
+        ],
+        dots: [{ at: [heel[0], yF - 4], on: drive }],
+        count: "LEFT LEG",
+      };
+    },
+  });
+})();
+
+/* ---- Kettlebell windmill (front): bell locked out overhead in the left hand, feet turned away from it.
+   Hips push out toward the bell, the torso folds toward the right foot, the free hand slides down the
+   inside of the right leg. The bell arm stays vertical the whole way ---- */
+(() => {
+  const DIR = n3([0.12, -0.45, -0.88]);
+  const LEGS = {
+    L: { ankle: [-21, 8.4, 0], pole: [0.25, 0.1, 1], foot: n3([0.55, 0, 0.83]) },
+    R: { ankle: [21, 8.4, 0], pole: [0.6, 0.1, 1], foot: n3([0.72, 0, 0.7]) },
+  };
+  const geo = b => {
+    const e = b, phi = 68 * e;
+    return { pel: [lerp(0, -15, e), lerp(88.6, 83, e), lerp(0, -7, e)], spine: n3([Math.sin(phi * D2R), Math.cos(phi * D2R), 0.42 * Math.sin(phi * D2R)]) };
+  };
+  const bellGrip = J => a3(J.shL, [0, B.ua + B.grip - 1.4, 0]);
+  const FIG = sideMove({
+    id: "kb-windmill", frame: { k: 1.02, cx: 150, cy: 150 }, shadowR: 40, shadowFlat: 0.25,
+    keys: { top: { b: 0 }, bot: { b: 1 } }, ghostKey: "bot",
+    seq: [
+      { label: "Hinge", dur: 2.2, from: "top", to: "bot", ease: "inOut", effort: 0.8 },
+      { label: "Bottom", dur: 0.4, from: "bot", to: "bot", effort: 0.9 },
+      { label: "Rise", dur: 1.5, from: "bot", to: "top", ease: "inOut", effort: 1 },
+      { label: "Top", dur: 0.5, from: "top", to: "top", effort: 0.3 },
+    ],
+    muscles: { core: 1, delts: 0.5 },
+    spec: p => {
+      const g = geo(p.b);
+      return { pelvis: g.pel, spine: g.spine, head: lerp(0, -6, p.b), legs: LEGS,
+        arms: J => {
+          const up = [0, 1, 0];
+          const hang = a3(J.shR, [3, -(B.ua + B.grip) + 2, 3]);
+          const foot = [14, 16, 4];
+          const tgt = softReach(J.shR, mix3(hang, foot, sstep(p.b)), B.ua + B.grip, 3);
+          return {
+            L: via(J, "L", a3(J.shL, m3(up, B.ua)), bellGrip(J)),
+            R: { at: tgt, pole: n3([0.7, 0.1, -0.5]) },
+          };
+        } };
+    },
+    draw(J, p, ctx, P) {
+      const g = bellGrip(J), gp = P(g), sh = P(J.shL), hip = P(J.hipL);
+      const out = ctx.phase === "Hinge" || ctx.phase === "Bottom";
+      return {
+        back: [cueLine([gp[0], gp[1] - 22], [gp[0], sh[1] + 16], true)],
+        items: [kbItem(P, g, DIR)],
+        labels: [
+          { at: [gp[0] - 8, gp[1] - 14], text: "ARM VERTICAL", on: true, anchor: "end" },
+          { at: [hip[0] - 16, hip[1] + 4], text: "HIPS OUT", on: out, anchor: "end" },
+        ],
+        count: "LEFT ARM",
+      };
+    },
+  });
+  FIG.view = "FRONT";
+})();
+
+/* ---- Turkish get-up (side): one long figure through seven stations. Lie with the bell pressed up and the
+   left knee bent, roll to the right elbow, post to the hand, bridge, sweep the right leg under to a kneel,
+   lift the torso, stand; then every step backwards. The bell arm is solved straight up from the shoulder in
+   every frame. Planted: the left foot (all the way), the right hand (lie to kneel), the right heel (lie to
+   bridge), the right knee (kneel). The torso is placed from a right-shoulder target, so the hand stays put. ---- */
+(() => {
+  const DSH = Math.hypot(B.sh, 17.5);
+  const UP = [0, 1, 0];
+  // spine and lat from the pelvis, a right-shoulder target and a lat hint; exact, so J.shR lands on the target
+  const frameFrom = (pel, shR, latH) => {
+    const d = n3(s3(shR, pel)), q = n3(s3(latH, m3(d, d3(latH, d))));
+    const c = 17.5 / DSH, sn = B.sh / DSH;
+    return { spine: n3(s3(m3(d, sn), m3(q, c))), lat: n3(a3(m3(d, c), m3(q, sn))) };
+  };
+  // the point at distance ra from A and rb from Bp, furthest toward hint
+  const sphereX = (A, ra, Bp, rb, hint) => {
+    const D = s3(Bp, A), d = l3(D), u = m3(D, 1 / d), a = (ra * ra - rb * rb + d * d) / (2 * d);
+    const h = Math.sqrt(Math.max(0, ra * ra - a * a)), w = n3(s3(hint, m3(u, d3(hint, u))));
+    return a3(a3(A, m3(u, a)), m3(w, h));
+  };
+  const FL = [52, 8.4, 12];                                    // left foot, planted throughout
+  const PEL0 = [10, 11, 0];
+  const SH0 = a3(PEL0, [-B.sh, 0, -17.5]);
+  const HAND_DIR = n3([0.45, 0, -0.89]);
+  const W = [SH0[0] + HAND_DIR[0] * 54.8, 3.6, SH0[2] + HAND_DIR[2] * 54.8];   // right wrist, planted lie to kneel
+  const E1 = a3(SH0, m3(n3(s3(W, SH0)), B.ua)); E1[1] = 4.8;   // where the elbow digs in
+  const RA0 = [91, 6.2, -26];                                  // right heel end of the straight leg
+  const K = [6, 6, -12];                                       // right knee, planted while kneeling
+  const RA4 = a3(K, m3(n3([-41, 0.4, -1]), B.shin));             // right ankle behind the knee, laces down (exact shin length)
+  const RA6 = [52, 8.4, -9];                                   // right foot home beside the left
+  // right foot pitched in the side plane: th 83 = toes up (lying), 187 = laces down (kneeling), 360 = flat
+  const footTh = th => ({ foot: [Math.cos(th * D2R), Math.sin(th * D2R), 0], sole: [Math.sin(th * D2R), -Math.cos(th * D2R), 0] });
+  const L_TOE_UP = footTh(83), L_LACES = footTh(187);
+  const FACE = [0, 0, -1];
+  const KPOLE = (() => { const H = a3(K, [0, B.thigh, 0]), ax = n3(s3(RA4, H)), q = a3(H, m3(ax, d3(s3(K, H), ax))); return n3(s3(K, q)); })();
+  // torso keys. 0 lie, 1 elbow, 2 hand, 3 bridge, 4 kneel (leaning on the hand), 5 kneel tall, 6 stand
+  const PEL3 = [16, 40, -14];
+  const hip4 = a3(K, m3(n3([0.2, 1, -0.06]), B.thigh));
+  const hip5 = a3(K, [0, B.thigh, 0]);
+  const PEL6 = [FL[0] - 2, 90.4, 1.5];
+  const LATH = [[0, 0, -1], n3([0, -0.55, -0.85]), n3([0.1, -0.75, -0.65]), n3([0.15, -0.95, -0.3]), n3([0.25, -0.75, -0.6]), FACE, FACE];
+  // pelvis for a right-hip target (lat depends on the pelvis, so iterate)
+  const pelFromHip = (hip, shFn, latH) => {
+    let lat = n3(latH), pel = s3(hip, m3(lat, 8.6));
+    for (let i = 0; i < 6; i++) { const f = frameFrom(pel, shFn(pel), latH); lat = f.lat; pel = s3(hip, m3(lat, 8.6)); }
+    return pel;
+  };
+  const shHand = pel => sphereX(pel, DSH, W, B.ua + B.fa - 1.2, UP);
+  const shTall = pel => a3(pel, [-1.5, B.sh, -17.5]);
+  const torsoAt = u => {
+    const i = Math.min(5, Math.floor(u)), t = sstep(u - i);
+    const latH = n3(mix3(LATH[i], LATH[i + 1], t));
+    let pel, sh;
+    if (i <= 1) { pel = PEL0; sh = n3(mix3(i === 0 ? s3(SH0, PEL0) : s3(sphereX(PEL0, DSH, E1, B.ua, UP), PEL0), i === 0 ? s3(sphereX(PEL0, DSH, E1, B.ua, UP), PEL0) : s3(shHand(PEL0), PEL0), t)); sh = a3(PEL0, m3(sh, DSH)); }
+    else if (i === 2) { pel = mix3(PEL0, PEL3, t); sh = shHand(pel); }
+    else if (i === 3) { const p4 = pelFromHip(hip4, shHand, LATH[4]); pel = mix3(PEL3, p4, t); sh = shHand(pel); }
+    else if (i === 4) {
+      const hip = a3(K, m3(n3(mix3(s3(hip4, K), s3(hip5, K), t)), B.thigh - 0.3));
+      const shF = pel => { const a = shHand(pel), b = shTall(pel); return a3(pel, m3(n3(mix3(s3(a, pel), s3(b, pel), sstep(t * 1.15))), DSH)); };
+      pel = pelFromHip(hip, shF, latH); sh = shF(pel);
+    } else { const p5 = s3(hip5, m3(FACE, 8.6)); pel = mix3(p5, PEL6, t); sh = shTall(pel); }
+    return { pel, sh, latH, i, t };
+  };
+  const spec = p => {
+    const u = clamp(p.u, 0, 6), b = torsoAt(u), f = frameFrom(b.pel, b.sh, b.latH);
+    // left leg: knee up while lying, forward in the kneel
+    const lp = n3(mix3([0.25, 1, 0.1], [1, 0.25, 0], sstep((u - 3) / 2)));
+    const legs = { L: { ankle: FL, pole: lp, foot: [1, 0, 0] } };
+    let a;
+    if (u <= 3) legs.R = Object.assign({ ankle: RA0, pole: [0, 1, 0.2] }, L_TOE_UP);
+    else if (u <= 4) {
+      // the sweep: thigh and shin directions curve from the bridge to the kneel (designed knee, no IK flips)
+      const t = sstep(u - 3);
+      legs.R = Object.assign({ sweep: t, ankle: RA4, pole: [0, -1, 0] }, footTh(lerp(83, 187, t)));
+    } else if (u <= 5) legs.R = Object.assign({ knee: K, ankle: RA4, pole: KPOLE }, L_LACES);
+    else {
+      const t = sstep(u - 5);
+      a = a3(mix3(RA4, RA6, t), [0, 14 * bump(t), 0]);
+      legs.R = Object.assign({ ankle: a, pole: n3(mix3(KPOLE, [1, 0.2, 0], t)) }, footTh(lerp(187, 360, t)));
+    }
+    return { pelvis: b.pel, spine: f.spine, lat: f.lat, head: u < 1 ? 0 : lerp(0, 4, sstep(u - 1)), legs,
+      arms: J => {
+        if (legs.R.sweep !== undefined && SW) {
+          const t = legs.R.sweep, bz = (a, m, b) => n3(a3(a3(m3(a, (1 - t) * (1 - t)), m3(m, 2 * t * (1 - t))), m3(b, t * t)));
+          const kn = a3(J.hipR, m3(bz(SW.t3, SW.tm, SW.t4), lerp(B.thigh, SW.l4, t)));
+          legs.R.knee = kn; legs.R.ankle = a3(kn, m3(bz(SW.s3, SW.sm, SW.s4), B.shin));
+        } else if (legs.R.ankle !== RA0 && legs.R.knee !== K) legs.R.ankle = reachFrom(J.hipR, legs.R.ankle, LEGLEN - 0.8);
+        const L = via(J, "L", a3(J.shL, m3(UP, B.ua)), a3(J.shL, m3(UP, B.ua + B.grip - 1.4)));
+        let R;
+        if (u <= 4) {
+          const pole = u <= 1 ? n3(mix3([1, 0.25, 0], [0.3, -1, -0.2], sstep(u))) : n3(mix3([0.3, -1, -0.2], [0.6, -0.2, 0.75], sstep((u - 1) / 1.2)));
+          R = { at: W, wrist: true, hand: HAND_DIR, pole };
+        } else {
+          const t = sstep(u - 4), hang = a3(J.shR, [2, -(B.ua + B.fa) + 1.5, -3]);
+          const lift = a3(mix3(W, hang, t), [0, 10 * bump(t), 0]);
+          R = { at: softReach(J.shR, lift, B.ua + B.fa, 2), wrist: true, hand: n3(mix3(HAND_DIR, [0, -1, 0], t)), pole: n3(mix3([0.6, -0.2, 0.75], [0.3, 0, -1], t)) };
+        }
+        return { L, R };
+      } };
+  };
+  // sweep directions, read off the solved bridge and kneel poses
+  let SW = null;
+  { const J3 = solve3(spec({ u: 3 })), J4 = solve3(spec({ u: 4 }));
+    SW = { t3: n3(s3(J3.kneeR, J3.hipR)), s3: n3(s3(J3.ankleR, J3.kneeR)), t4: n3(s3(K, J4.hipR)), s4: n3(s3(RA4, K)), l4: l3(s3(K, J4.hipR)),
+      tm: n3([0.35, -0.75, -0.55]), sm: n3([0.05, -0.25, -0.97]) }; }
+  const STA = ["Lie", "Elbow", "Hand", "Bridge", "Sweep", "Kneel", "Stand"];
+  const keys = {}; STA.forEach((n, i) => { keys["k" + i] = { u: i }; });
+  const FIG = sideMove({
+    id: "kb-getup", frame: { k: 1.0, cx: 150, cy: 150 }, shadowR: 70, shadowX: 0, shadowFlat: 0.15,
+    keys, ghostKey: "k6",
+    seq: [
+      { label: "Elbow", dur: 1.2, from: "k0", to: "k1", ease: "inOut", effort: 0.7 },
+      { label: "Hand", dur: 0.9, from: "k1", to: "k2", ease: "inOut", effort: 0.7 },
+      { label: "Bridge", dur: 0.9, from: "k2", to: "k3", ease: "inOut", effort: 0.9 },
+      { label: "Sweep", dur: 1.1, from: "k3", to: "k4", ease: "inOut", effort: 0.7 },
+      { label: "Kneel", dur: 1, from: "k4", to: "k5", ease: "inOut", effort: 0.8 },
+      { label: "Stand", dur: 1.2, from: "k5", to: "k6", ease: "inOut", effort: 1 },
+      { label: "Top", dur: 0.7, from: "k6", to: "k6", effort: 0.3 },
+      { label: "Down", dur: 6, from: "k6", to: "k0", ease: "inOut", effort: 0.6 },
+      { label: "Reset", dur: 0.7, from: "k0", to: "k0", effort: 0.2 },
+    ],
+    muscles: { core: 1, delts: 0.6, glutes: 0.5, triceps: 0.3 },
+    spec,
+    draw(J, p, ctx, P) {
+      const g = a3(J.shL, m3(UP, B.ua + B.grip - 1.4)), gp = P(g), sh = P(J.shL), yF = P([0, 0, 0])[1];
+      const onHand = p.u > 0.6 && p.u < 4.2, wp = P(W);
+      return {
+        back: [cueLine([gp[0], gp[1] - 22], [gp[0], sh[1] + 10], true)],
+        items: [kbItem(P, g, n3([-0.5, -0.45, 0.6]))],
+        dots: p.u < 4.4 ? [{ at: [wp[0], yF - 1.5], on: onHand }] : [],
+        labels: [
+          { at: [gp[0] + 8, gp[1] - 14], text: "ARM VERTICAL", on: true, anchor: "start" },
+          { at: [wp[0], yF + 13], text: onHand ? "HAND STAYS" : "", on: true, anchor: "middle" },
+        ],
+        count: "LEFT ARM",
+      };
+    },
+  });
+  void FIG;
+})();
+
 FIGS.forEach(f => F.define(f));
 })(window.ForgeFigures);

@@ -44,6 +44,8 @@
   --green-glow: rgba(74, 222, 128, 0.13);
   --violet: #A78BFA;
   --violet-glow: rgba(167, 139, 250, 0.16);
+  --rose: #F472B6;
+  --rose-glow: rgba(244, 114, 182, 0.14);
   --red: #F87171;
   --gray: #8A9099;
   --gray-glow: rgba(138, 144, 153, 0.16);
@@ -63,6 +65,7 @@
 .hypertrophy  { --acc: var(--cyan);   --acc-tint: var(--cyan-glow); }
 .calisthenics { --acc: var(--green);  --acc-tint: var(--green-glow); }
 .core         { --acc: var(--violet); --acc-tint: var(--violet-glow); }
+.kettlebell   { --acc: var(--rose);   --acc-tint: var(--rose-glow); }
 
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
@@ -209,6 +212,7 @@ button { font: inherit; color: inherit; }
 .cal-code.hyp  { color: var(--cyan);   background: var(--cyan-glow); }
 .cal-code.cal  { color: var(--green);  background: var(--green-glow); }
 .cal-code.core { color: var(--violet); background: var(--violet-glow); }
+.cal-code.kb   { color: var(--rose);   background: var(--rose-glow); }
 .cal-code.rest { color: var(--gray);   background: var(--gray-glow); }
 .cal-code.more { color: var(--text-muted); background: none; padding: 0 2px; font-size: 9px; }
 .cal-code.blank { color: var(--border-light); background: none; }
@@ -799,6 +803,7 @@ button { font: inherit; color: inherit; }
 .sheet-add.hyp  { box-shadow: inset 3px 0 0 var(--cyan); }
 .sheet-add.cal  { box-shadow: inset 3px 0 0 var(--green); }
 .sheet-add.core { box-shadow: inset 3px 0 0 var(--violet); }
+.sheet-add.kb   { box-shadow: inset 3px 0 0 var(--rose); }
 .sheet-add.rest { color: var(--text-secondary); font-family: var(--font-display); font-weight: 600; font-size: 15px; letter-spacing: 2px; text-transform: uppercase; }
 .sheet-note { margin-top: 14px; font-size: 13px; line-height: 1.5; color: var(--text-secondary); }
 .sheet-note strong { color: var(--text-primary); font-weight: 600; }

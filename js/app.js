@@ -439,7 +439,7 @@
 
   // Calisthenics days get their own colour so they read apart from the
   // amber/cyan power-vs-hypertrophy split at a glance.
-  const COLOR_TONE = { green: 'cal', violet: 'core', cyan: 'hyp', amber: 'pwr', gray: 'rest' };
+  const COLOR_TONE = { green: 'cal', violet: 'core', rose: 'kb', cyan: 'hyp', amber: 'pwr', gray: 'rest' };
 
   function toneOf(typeOrEntry) {
     if (typeOrEntry && typeof typeOrEntry === 'object') {
@@ -451,6 +451,7 @@
     const t = typeof typeOrEntry === 'string' ? typeOrEntry : (typeOrEntry && typeOrEntry.type);
     if (t === 'rest') return 'rest';
     if (t === 'calisthenics') return 'cal';
+    if (t === 'kettlebell') return 'kb';
     if (t === 'hypertrophy') return 'hyp';
     return 'pwr';
   }
@@ -728,6 +729,10 @@ Store.saveActiveWorkout({
   // jumping a version. Add a new entry at the top for every release that has
   // notes; a release without notes adds nothing and shows nothing.
   const RELEASES = [
+    { id: 'v0.37', items: [
+      ['Kettlebell day', 'A new full-body day in the workout picker, under Extra: swings, goblet squats, presses, rows, cleans, lunges, carries and, on Extended, the Turkish get-up and windmill. It\u2019s a bonus like Back & Core, so it leaves the cycle where it is unless you flip the toggle.'],
+      ['Eight new moves', 'Goblet Squat, Single-Arm KB Press, Single-Arm KB Row, Single-Arm KB Floor Press, Kettlebell Clean, Front-Rack Reverse Lunge, Turkish Get-Up and Kettlebell Windmill, each with an animated demo. All eight are also in Add exercise. Log the weight of one bell.'],
+    ] },
     { id: 'v0.36', items: [
       ['Plates match your weight', 'The plate calculator opens already loaded for the weight in the box, heaviest plates first. If the plates can\u2019t make it exactly, it shows the closest weights either side.'],
       ['Reps reset each set', 'Every new set starts back on the rep target, so a short set doesn\u2019t make you forget what you were aiming for.'],
@@ -784,7 +789,7 @@ Store.saveActiveWorkout({
     ] },
   ];
   const RELEASE = RELEASES[0];
-  const RELEASE_SHOW_MAX = 3;
+  const RELEASE_SHOW_MAX = 5;
   // Shown only on a copy whose earlier dumbbell entries were totals and just got
   // halved. It sits under v0.28, the release that explains one-dumbbell entry.
   const PAIR_FIX_NOTE = ['Your dumbbell history', 'Your earlier dumbbell entries were both hands combined, so they have been halved to one dumbbell. Records and last-time numbers now match what you enter.'];
@@ -1027,17 +1032,17 @@ Store.saveActiveWorkout({
 
   // ===== v0.16 HOME HELPERS =====
   // One tone name per day: power (amber), hypertrophy (cyan), calisthenics
-  // (green) or core (violet). The CSS turns it into the accent colour.
+  // (green), core (violet) or kettlebell (rose). The CSS turns it into the accent colour.
   function toneClass(day) {
     const t = toneOf(day);
-    return t === 'hyp' ? 'hypertrophy' : t === 'cal' ? 'calisthenics' : t === 'core' ? 'core' : 'power';
+    return t === 'hyp' ? 'hypertrophy' : t === 'cal' ? 'calisthenics' : t === 'core' ? 'core' : t === 'kb' ? 'kettlebell' : 'power';
   }
 
   // Tints the whole app (nav underline, header) with the day in front of you.
   function setAppTone(tone) {
     const app = document.getElementById('app');
     if (!app) return;
-    app.classList.remove('power', 'hypertrophy', 'calisthenics', 'core');
+    app.classList.remove('power', 'hypertrophy', 'calisthenics', 'core', 'kettlebell');
     app.classList.add(tone);
   }
 
@@ -1212,7 +1217,7 @@ Store.saveActiveWorkout({
       <div class="sheet-note">
         Picking a bodyweight or out-of-order day still counts as
         <strong>${scheduled.name}</strong> by default, so tomorrow serves the next
-        workout in the cycle. Back &amp; Core is a bonus and leaves the cycle where it is.
+        workout in the cycle. Back &amp; Core and Kettlebell are bonuses and leave the cycle where it is.
         Either way the toggle beside the picker overrides it before you start.
       </div>
     `;
@@ -1349,6 +1354,7 @@ Store.saveActiveWorkout({
           <div><span class="legend-dot" style="background:var(--cyan)"></span>Hyp</div>
           <div><span class="legend-dot" style="background:var(--green)"></span>Cal</div>
           <div><span class="legend-dot" style="background:var(--violet)"></span>Core</div>
+          <div><span class="legend-dot" style="background:var(--rose)"></span>KB</div>
           <div style="color:var(--gray)">✕ Rest</div>
           <button class="legend-key-btn" onclick="FORGE.openKeySheet()">
             <i class="ti ti-help-circle"></i> Key
@@ -1383,7 +1389,7 @@ Store.saveActiveWorkout({
         <div class="key-row"><span class="cal-code pwr">\u2212</span><span>Light \u00b7 ~60 min</span></div>
         <div class="key-row"><span class="cal-code pwr">\u2731</span><span>Normal \u00b7 ~85 min</span></div>
         <div class="key-row"><span class="cal-code pwr">+</span><span>Extended \u00b7 ~105 min</span></div>
-        <div class="key-row"><span class="cal-code cal">\u2212</span><span>Calisthenics, Back &amp; Core \u00b7 ~30 / 55 / 80</span></div>
+        <div class="key-row"><span class="cal-code cal">\u2212</span><span>Calisthenics, Back &amp; Core, Kettlebell \u00b7 ~30 / 55 / 80</span></div>
       </div>
 
       <div class="sheet-section-label">Colour</div>
@@ -1392,6 +1398,7 @@ Store.saveActiveWorkout({
         <div class="key-row"><span class="key-swatch" style="background:var(--cyan)"></span><span>Hypertrophy</span></div>
         <div class="key-row"><span class="key-swatch" style="background:var(--green, #10B981)"></span><span>Calisthenics</span></div>
         <div class="key-row"><span class="key-swatch" style="background:var(--violet, #8B5CF6)"></span><span>Back &amp; Core</span></div>
+        <div class="key-row"><span class="key-swatch" style="background:var(--rose)"></span><span>Kettlebell</span></div>
         <div class="key-row"><span class="key-swatch" style="background:var(--gray)"></span><span>Rest</span></div>
       </div>
 
@@ -1470,7 +1477,7 @@ Store.saveActiveWorkout({
     // Noon on the chosen date keeps ordering sane against same-day workouts
     const stamp = new Date(dateStr + 'T12:00:00').toISOString();
 
-    // An alternate that does not advance (Back & Core) is logged as a bonus.
+    // An alternate that does not advance (Back & Core, Kettlebell) is logged as a bonus.
     // Anything on the cycle takes its own slot.
     let slot = null;
     if (!isRest) {
@@ -1946,7 +1953,7 @@ Store.saveActiveWorkout({
         <button class="action-btn" onclick="window.open('${ex.video}', '_blank')">
           <i class="ti ti-player-play"></i> Demo
         </button>
-        ${!isBW && !isTimeMode ? `
+        ${!isBW && !isTimeMode && !ex.kb ? `
         <button class="action-btn" onclick="FORGE.openPlateCalc()">
           <i class="ti ti-barbell"></i> Plates
         </button>` : ''}
@@ -2930,7 +2937,7 @@ Store.saveActiveWorkout({
   //   reps   pure bodyweight moves: best reps
   //   time   timed holds: best seconds
 
-  const HIST_TONE = { power: 'var(--amber)', hypertrophy: 'var(--cyan)', calisthenics: 'var(--green)', core: 'var(--violet)' };
+  const HIST_TONE = { power: 'var(--amber)', hypertrophy: 'var(--cyan)', calisthenics: 'var(--green)', core: 'var(--violet)', kettlebell: 'var(--rose)' };
   const HIST_MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const HIST_MIN_POINTS = 3;
 
@@ -3260,7 +3267,7 @@ Store.saveActiveWorkout({
         <span class="hist-row-vol">${histVolLabel(h.kind, s.vol)}</span>
       </button>`).join('');
 
-    panel.classList.remove('power', 'hypertrophy', 'calisthenics', 'core');
+    panel.classList.remove('power', 'hypertrophy', 'calisthenics', 'core', 'kettlebell');
     content.innerHTML = `
       <div class="hist">
         <div class="hist-head">
@@ -4065,7 +4072,7 @@ Store.saveActiveWorkout({
 
     // Animated figure in the day's colour. If there is no figure for this
     // exercise, or it fails to draw, the old image goes in its place.
-    panel.classList.remove('power', 'hypertrophy', 'calisthenics', 'core');
+    panel.classList.remove('power', 'hypertrophy', 'calisthenics', 'core', 'kettlebell');
     panel.classList.add(toneClass(day));
     const slot = document.getElementById('info-figure');
     const Figs = window.ForgeFigures;
@@ -4093,7 +4100,7 @@ Store.saveActiveWorkout({
       <div class="info-panel-tip">${m.text}</div>
     `;
 
-    panel.classList.remove('power', 'hypertrophy', 'calisthenics', 'core');
+    panel.classList.remove('power', 'hypertrophy', 'calisthenics', 'core', 'kettlebell');
     panel.classList.add(toneClass(day));
     const Figs = window.ForgeFigures;
     if (Figs) Figs.stopAll();
